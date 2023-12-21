@@ -53,7 +53,8 @@ jobs:
           make package/luci-app-modem/compile -j$(nproc)
 
           cd ..
-          TARGET="$(find openwrt-sdk/bin/ | grep  luci-app-modem)"
+          #TARGET="$(find openwrt-sdk/bin/ | grep  luci-app-modem)"
+          TARGET="luci-app-modem"
           CONFIG_TARGET="$(find openwrt-sdk/bin/ | grep luci-app-modem)"
           CONFIG_I18N_TARGET="$(find openwrt-sdk/bin/ | grep luci-i18n-modem)"
 
