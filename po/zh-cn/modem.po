@@ -1,0 +1,116 @@
+msgid "Base Setting"
+msgstr "基本设置"
+
+msgid "Modem"
+msgstr "移动通信模组"
+
+msgid "Modem Config"
+msgstr "模组配置"
+
+msgid "Modem Status"
+msgstr "模组状态"
+
+msgid "Modem Name"
+msgstr "模组名称"
+
+msgid "Modem Select"
+msgstr "选择模块"
+
+msgid "Connect"
+msgstr "已连接"
+
+msgid "Disconnect"
+msgstr "未连接"
+
+msgid "Disabled"
+msgstr "未启用"
+
+msgid "Data Interface"
+msgstr "数据接口"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Config List"
+msgstr "配置列表"
+
+msgid "Configuration panel for Modem, Add configuration to all modems on this page"
+msgstr "通信模组服务配置界面，在此页面给所有模组添加配置"
+
+msgid "AT Commands"
+msgstr "AT命令"
+
+msgid "Debugging Your Module with AT Command"
+msgstr "使用AT命令调试你的模组"
+
+msgid "Modem Info"
+msgstr "模组信息"
+
+msgid "Check to enable all configurations"
+msgstr "勾选启用全部配置"
+
+msgid "General Settings"
+msgstr "通用配置"
+
+msgid "Advanced Settings"
+msgstr "高级配置"
+
+msgid "Remarks"
+msgstr "备注"
+
+msgid "Moblie Network"
+msgstr "移动网络"
+
+msgid "UNKNOWN"
+msgstr "未知"
+
+msgid "Mobile network not found"
+msgstr "未发现移动网络"
+
+msgid "The network device was not found"
+msgstr "找不到网络设备"
+
+msgid "Only display the modes available for the adaptation modem"
+msgstr "仅显示适配模组可用的拨号模式"
+
+msgid "Dial Tool"
+msgstr "拨号工具"
+
+msgid "Auto Choose"
+msgstr "自动选择"
+
+msgid "quectel-CM"
+msgstr "移远模组拨号工具"
+
+msgid "PDP Type"
+msgstr "网络类型"
+
+msgid "APN"
+msgstr "接入点"
+
+msgid "China Mobile"
+msgstr "中国移动"
+
+msgid "China Unicom"
+msgstr "中国联通"
+
+msgid "China Telecom"
+msgstr "中国电信"
+
+msgid "China Broadcast"
+msgstr "中国广电"
+
+msgid "Skytone"
+msgstr "天际通"
+
+msgid "PAP/CHAP Username"
+msgstr "PAP/CHAP 用户名"
+
+msgid "PAP/CHAP Password"
+msgstr "PAP/CHAP 密码"
+
+msgid "Authentication Type"
+msgstr "认证类型"
+
+msgid "NONE"
+msgstr "无"
