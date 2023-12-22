@@ -42,11 +42,10 @@ function getATPort()
 	end)
 	return at_ports
 end
-
 %>
 <style>g {color:grey; font-size:75%; vertical-align: super;}</style>
 <script type="text/javascript" src="<%=resource%>/xhr.js?v=git-23.159.15540-7154b89"></script>
-<script type="text/javascript">
+<script type="text/javascript">//<![CDATA[
 
 	window.onload=function()
 	{
@@ -58,68 +57,6 @@ end
 			// 更新数据
 			update();
 		});
-
-		// 定时触发更新AT串口和模组数据
-		XHR.poll(5,'<%=luci.dispatcher.build_url("admin", "network", "modem", "get_at_port")%>', null,
-			function(x, port)
-			{	
-				//获取模块选择框元素
-				var modem_select = document.getElementById('modem_select');
-				// 记录所选
-				var selected=modem_select.value;
-				// 删除原来的选项
-				modem_select.options.length=0;
-				// 更新（key：AT串口，value：模块名称）
-				for (var key in port)
-				{
-					var option = document.createElement('option');
-					option.text = port[key].trim();
-					option.value = key;
-					modem_select.appendChild(option);
-				}
-				// 恢复原来的选择
-				for (let i = 0; i < modem_select.options.length; i++)
-				{
-					if(modem_select.options[i].value == selected)
-					{
-						modem_select.selectedIndex=i;
-						break;
-					}
-				}
-				update();
-			}
-		);
-		
-		// 更新模组数据
-		function update()
-		{
-			var at_port="";
-			if (modem_select.options.length!=0) {
-				at_port=modem_select.options[modem_select.selectedIndex].value;
-			}
-			else {
-				return
-			}
-
-			XHR.get('<%=luci.dispatcher.build_url("admin", "network", "modem", "get_modem_info")%>', {"port":at_port},
-				function(x, modem_info)
-				{
-					console.log(modem_info);
-
-					var base_info=modem_info["base_info"];
-					for (var key in base_info)
-					{
-						document.getElementById(key).innerHTML=base_info[key];
-					}
-
-					var more_info=modem_info["more_info"];
-					for (var key in more_info)
-					{
-						document.getElementById(key).innerHTML=more_info[key];
-					}
-				}
-        	);
-		}
 
 		//更新模组数据
 		// XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "network", "modem", "get_modem_info")%>', {"port":at_port},
@@ -255,14 +192,81 @@ end
 			
 	}
 
+	// 更新模组数据
+	function update()
+	{
+		var at_port="";
+		if (modem_select.options.length!=0) {
+			at_port=modem_select.options[modem_select.selectedIndex].value;
+		}
+		else {
+			return
+		}
+
+		XHR.get('<%=luci.dispatcher.build_url("admin", "network", "modem", "get_modem_info")%>', {"port":at_port},
+			function(x, modem_info)
+			{
+				console.log(modem_info);
+
+				var base_info=modem_info["base_info"];
+				for (var key in base_info)
+				{
+					var base_info_Element=document.getElementById(key);
+					if (base_info_Element!=null)
+					{
+						base_info_Element.innerHTML=base_info[key];
+					}
+				}
+
+				var more_info=modem_info["more_info"];
+				for (var key in more_info)
+				{
+					var more_info_Element=document.getElementById(key);
+					if (more_info_Element!=null)
+					{
+						more_info_Element.innerHTML=more_info[key];
+					}
+				}
+			}
+		);
+	}
+
+	// 定时触发更新AT串口和模组数据
+	XHR.poll(5,'<%=luci.dispatcher.build_url("admin", "network", "modem", "get_at_port")%>', null,
+		function(x, port)
+		{
+			//获取模块选择框元素
+			var modem_select = document.getElementById('modem_select');
+			// 记录所选
+			var selected=modem_select.value;
+			// 删除原来的选项
+			modem_select.options.length=0;
+			// 更新（key：AT串口，value：模块名称）
+			for (var key in port)
+			{
+				var option = document.createElement('option');
+				option.text = port[key].trim();
+				option.value = key;
+				modem_select.appendChild(option);
+			}
+			// 恢复原来的选择
+			for (let i = 0; i < modem_select.options.length; i++)
+			{
+				if(modem_select.options[i].value == selected)
+				{
+					modem_select.selectedIndex=i;
+					break;
+				}
+			}
+			update();
+		}
+	);
 
 	modemtype=0;
 	cell=0;
 	portx="-";
 	phonenx = "";
 	hided = 0;
-
-	
 
 	function clear_data()
 	{
@@ -307,12 +311,12 @@ end
 		// document.getElementById('idvp').innerHTML="-";
 		// document.getElementById('phonen').value="-";
 	}
-
+//]]>
 </script>
 
 <div class="cbi-map" id="cbi-modem">
-<h2 name="content"><%:模块信息%></h2>
-<div class="cbi-map-descr">在此页面查看已适配模组的信息</div>
+<h2 name="content"><%:Modem Info%></h2>
+<div class="cbi-map-descr"><%:%></div>
 
 <fieldset class="cbi-section" id="simwarn" style="display:none;">
 	<legend><%:SIM警告%></legend>
@@ -333,17 +337,17 @@ end
 		<table width="550"  border="0">
 			<tr>
 				<td width="10%"></td>
-				<td width="60%"><div align="left" id="simsg" style="font-size:1.875em"><strong>没有安装模组<%= at_ports["/dev/ttyUSB1"] %></strong></div></td>
+				<td width="60%"><div align="left" id="simsg" style="font-size:1.875em"><strong><%:No modems found%></strong></div></td>
 				<td width="30%"></td>
 			</tr>
 		</table>
 	</fieldset>
 
 <% else %>
-	<fieldset class="cbi-section" id="cbi-mod">
+	<fieldset class="cbi-section" id="cbi-baseinfo">
 		<h3><%:基本信息%></h3>
 		<table width="100%" cellspacing="10">
-			<tr><td width="20%"><%:模组 :%></td><td id="name">
+			<tr><td width="20%"><%:模组 :%></td><td id="modem_name">
 				<select name="modem_select" id="modem_select">
 					<% at_ports = getATPort() %>
 					<% for key in pairs(at_ports) do %>
@@ -353,9 +357,10 @@ end
 			</td><td></td></tr>
 			<tr><td width="20%"><%:制造商 :%></td><td id="manufacturer"></td><td></td></tr>
 			<tr><td width="20%"><%:固件版本 :%></td><td id="revision"></td><td></td></tr>
-			<tr><td width="20%"><%:AT串口 : %></td><td id="at_port"></td><td></td></tr>
 			<tr><td width="20%"><%:数据接口 : %></td><td id="data_interface"></td><td></td></tr>
 			<tr><td width="20%"><%:拨号模式 : %></td><td id="mode"></td><td></td></tr>
+			<tr><td width="20%"><%:AT串口 : %></td><td id="at_port"></td><td></td></tr>
+			<tr><td width="20%"><%:移动网络 : %></td><td id="network"></td><td></td></tr>
 			<tr><td width="20%"><%:温度 : %></td><td id="temperature"></td><td></td></tr>
 			<tr><td width="20%"><%:更新时间 : %></td><td id="update_time"></td><td></td></tr>
 		</table>
@@ -364,7 +369,7 @@ end
 	<% if nosms == 0 then %>
 	<% end %>
 
-	<fieldset class="cbi-section" id="cbi-msinfo">
+	<fieldset class="cbi-section" id="cbi-siminfo">
 		<h3><%:SIM卡信息%></h3>
 		<table width="100%" cellspacing="10">
 			<tr><td width="20%"><%:运营商 : %></td><td id="isp"></td><td></td></tr>
@@ -375,8 +380,7 @@ end
 		</table>
 	</fieldset>
 
-
-	<fieldset class="cbi-section" id="cbi-sig">
+	<fieldset class="cbi-section" id="cbi-networkinfo">
 		<h3><%:网络信息%></h3>
 		<table width="100%" cellspacing="10">
 			<tr><td width="20%"><%:网络类型 :%></td><td id="net_type"></td><td></td></tr>
@@ -406,9 +410,8 @@ end
 		</table>
 	</fieldset>
 
-
 	<% if havegps == 1 then %>
-	<fieldset class="cbi-section" id="cbi-gps">
+	<fieldset class="cbi-section" id="cbi-gpsinfo">
 		<h3><%:GPS 定位%></h3>
 		<table width="550"  border="0">
 		<tr>

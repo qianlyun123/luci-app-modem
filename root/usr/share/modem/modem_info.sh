@@ -101,14 +101,14 @@ get_modem_info()
 {
 	update_time=$(date +"%Y-%m-%d %H:%M:%S")
 
-	debug "--检查模块的AT串口--"
+	debug "检查模块的AT串口"
 	#获取模块AT串口
 	if [ -z "$at_port" ]; then
 		debug "模块0没有找到AT串口"
 		return
 	fi
 
-	debug "--检查SIM状态--"
+	debug "检查SIM状态"
 	local sim_status=$(echo `sh $current_dir/modem_at.sh $at_port "AT+CPIN?"`)
     local sim_error=$(echo "$sim_status" | grep "ERROR")
 	if [ -n "$sim_error" ]; then
@@ -125,7 +125,7 @@ get_modem_info()
 		return
 	fi
 
-    debug "--根据模块类型开始采集数据--"
+    debug "根据模块类型开始采集数据"
 	#更多信息获取
 	case $manufacturer in
 		"quectel") get_quectel_info $at_port ;;

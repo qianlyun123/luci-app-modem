@@ -39,14 +39,14 @@ modem_network_task()
         fi
 
         #网络连接检查
-        debug "--开启网络连接检查任务--"
+        debug "开启网络连接检查任务"
         local at_port=$2
         local at_command="AT+COPS?"
         local connect_status=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p')
         if [ "$connect_status" = "0" ]; then
             dial $at_port $3
         fi
-        debug "--结束网络连接检查任务--"
+        debug "结束网络连接检查任务"
         sleep 10s
     done
 }

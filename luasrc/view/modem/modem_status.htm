@@ -10,7 +10,7 @@
 		{
 			console.log(modems);
 			var modemsDiv = document.getElementById('modem_status_text');
-			if (modems)
+			if (modems.length!=0)
 			{
 				var modem_view = '';
 				for ( var key in modems)
@@ -71,7 +71,8 @@
 			}
 		}
 	);
-//]]></script>
+//]]>
+</script>
 
 <style type="text/css">
 	#modem_status_text > div {
@@ -89,6 +90,6 @@
 	<h3><%:Modem Status%></h3>
 	<div id="modem_status_text">
 		<img src="<%=resource%>/icons/loading.gif" alt="<%:Loading%>" style="vertical-align:middle" />
-		<%:Collecting data...%>
+		<%:Loading modem status...%>
 	</div>
 </fieldset>

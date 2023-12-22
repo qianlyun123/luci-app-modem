@@ -14,7 +14,13 @@ msgid "Modem Name"
 msgstr "模组名称"
 
 msgid "Modem Select"
-msgstr "选择模块"
+msgstr "选择模组"
+
+msgid "Check information about adapted modem on this page"
+msgstr "在此页面查看已适配模组的信息"
+
+msgid "Loading modem status..."
+msgstr "正在加载模组状态"
 
 msgid "Connect"
 msgstr "已连接"
@@ -31,6 +37,9 @@ msgstr "数据接口"
 msgid "Mode"
 msgstr "模式"
 
+msgid "Connect Status"
+msgstr "连接状态"
+
 msgid "Config List"
 msgstr "配置列表"
 
@@ -45,6 +54,9 @@ msgstr "使用AT命令调试你的模组"
 
 msgid "Modem Info"
 msgstr "模组信息"
+
+msgid "No modems found"
+msgstr "没有找到模组"
 
 msgid "Check to enable all configurations"
 msgstr "勾选启用全部配置"

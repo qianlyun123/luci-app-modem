@@ -405,6 +405,12 @@ dial()
 	config_get password $1 password
 	config_get auth $1 auth
 
+	#获取模块序号
+	get_modem_no $network
+	#获取模组的拨号模式
+	[ -z "$modem_no" ] && return 0
+	local mode=$(uci -q get modem.modem$modem_no.mode)
+
 	#查看移动网络是否已经有配置在运行
 	local run_path="/tmp/modem"
 	mkdir -p $run_path
@@ -421,11 +427,6 @@ dial()
 			return 0
 		fi
 	fi
-
-	#获取模块序号
-	get_modem_no $network
-	#获取模组的拨号模式
-	local mode=$(uci -q get modem.modem$modem_no.mode)
 
 	#根据不同的拨号模式拨号
 	if [ "$mode" = "qmi" ]; then

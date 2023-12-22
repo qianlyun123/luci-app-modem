@@ -3,7 +3,7 @@ module("luci.controller.modem", package.seeall)
 local http = require "luci.http"
 local fs = require "nixio.fs"
 local json = require("luci.jsonc")
-local uci = luci.model.uci.cursor()
+uci = luci.model.uci.cursor()
 local script_path="/usr/share/modem/"
 
 function index()
@@ -23,9 +23,11 @@ function index()
 	entry({"admin", "network", "modem", "get_modems"}, call("getModems"), nil).leaf = true
 	entry({"admin", "network", "modem", "status"}, call("act_status")).leaf = true
 
-
 	--AT命令
-	entry({"admin", "network", "modem", "at_commands"},template("modem/at_commands"),translate("AT Commands"),30).leaf = true
+	-- local modem_number=uci:get('modem','@global[0]','modem_number')
+	-- if modem_number ~= "0" or modem_number == nil then
+		entry({"admin", "network", "modem", "at_commands"},template("modem/at_commands"),translate("AT Commands"),30).leaf = true
+	-- end
 	entry({"admin", "network", "modem", "mode_info"}, call("modeInfo"), nil).leaf = true
 	entry({"admin", "network", "modem", "send_at_command"}, call("sendATCommand"), nil).leaf = true
 	entry({"admin", "network", "modem", "user_at_command"}, call("userATCommand"), nil).leaf = true
@@ -41,42 +43,52 @@ function at(at_port,at_command)
 	return odp
 end
 
--- 获取模组的拨号模式
--- @Param network 移动网络
-function getModemMode(network)
-	local mode="Unconnected"
-	uci:foreach("modem", "config", function (config)
-		if network == config["network"] and config["mode"] ~= nil then
-			mode=config["mode"]
-			return true --跳出循环
-		end
-	end)
-	return mode
+-- 获取模组连接状态
+function getModemConnectStatus(at_port)
+	local at_command="AT+CGDCONT?"
+	local response=at(at_port,at_command)
+
+	-- 第六个引号的索引
+	local sixth_index=1
+	for i = 1, 5 do
+		sixth_index=string.find(response,'"',sixth_index)+1
+	end
+	-- 第七个引号的索引
+	local seven_index=string.find(response,'"',sixth_index+1)
+
+	-- 获取IPv4和IPv6
+	local ip=string.sub(response,sixth_index,seven_index-1)
+
+	local not_ip="0.0.0.0,0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"
+	if string.find(ip,not_ip) then
+        return "disconnect"
+    else
+        return "connect"
+    end
 end
 
 -- 获取模组基本信息
 function getModemBaseInfo(at_port)
-	local manufacturer=""
-	local mode="Unconnected"
+	local modem_base_info={}
 
 	uci:foreach("modem", "modem-device", function (modem_device)
 		if at_port == modem_device["at_port"] then
-			--获取制造商
-			manufacturer=modem_device["manufacturer"]
 			--获取数据接口
-			data_interface=modem_device["data_interface"]:upper()
-			--获取网络
-			network=modem_device["network"]
+			local data_interface=modem_device["data_interface"]:upper()
+			--获取连接状态
+			local connect_status
+			if modem_device["at_port"] then
+				connect_status=getModemConnectStatus(modem_device["at_port"])
+			end
+
+			--设置值
+			modem_base_info=modem_device
+			modem_base_info["data_interface"]=data_interface
+			modem_base_info["connect_status"]=connect_status
 			return true
 		end
 	end)
 
-	--设置值
-	local modem_base_info={}
-	modem_base_info["manufacturer"]=manufacturer
-	modem_base_info["at_port"]=at_port
-	modem_base_info["data_interface"]=data_interface
-	modem_base_info["mode"]=mode
 	return modem_base_info
 end
 
@@ -113,26 +125,6 @@ function getModemInfo()
 	luci.http.write_json(modem_info)
 end
 
--- 获取模组连接状态
-function getModemConnectStatus(at_port)
-	local at_command="AT+CGDCONT?"
-	local response=at(at_port,at_command)
-
-	-- 第六个引号的索引
-	local sixth_index = string.find(response, '"', string.find(response, '"', string.find(response, '"', string.find(response, '"', string.find(response, '"') +1) + 1) + 1) + 1)
-    -- 第七个引号的索引
-	local seven_index = string.find(response, '"', sixth_index + 1)
-
-	local content = string.sub(response, sixth_index + 1, seven_index - 1)
-
-	local ip_str="0.0.0.0,0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0"
-	if string.find(content, ip_str) then
-        return "disconnect"
-    else
-        return "connect"
-    end
-end
-
 -- 获取模组信息
 function getModems()
 
@@ -140,7 +132,12 @@ function getModems()
 
 	-- 获取所有模组
 	uci:foreach("modem", "modem-device", function (modem_device)
-		local connect_status=getModemConnectStatus(modem_device["at_port"])
+		--获取连接状态
+		local connect_status
+		if modem_device["at_port"] then
+			connect_status=getModemConnectStatus(modem_device["at_port"])
+		end
+
 		--设置值
 		local modem=modem_device
 		modem["connect_status"]=connect_status
