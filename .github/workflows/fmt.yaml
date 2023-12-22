@@ -22,7 +22,7 @@ jobs:
       uses: peter-evans/create-pull-request@v4
       with:
         base: main
-        token: ${{ secrets.TOKEN }}
+        token: ${{ env.GITHUB_TOKEN }}
         branch: fmt
         delete-branch: true
         title: ${{ github.event.head_commit.message }}
