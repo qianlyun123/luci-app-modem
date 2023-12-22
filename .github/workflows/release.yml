@@ -73,11 +73,20 @@ jobs:
         # Optionally strip `v` prefix
           strip_v: false
 
+      # - name: 生成发布标签
+      #   id: tag
+      #   if: steps.compile.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
+      #   run: |
+      #     echo "::set-output name=release_tag::$date"
+      #     touch release.txt
+      #     echo "⏱️ 编译时间: $(date +"%Y年%m月%d日%H时%M分") " >> release.txt
+      #     echo "::set-output name=status::success"
+
       - name: Upload to release
         uses: softprops/action-gh-release@v1
         if: steps.build.outputs.status == 'success' && !cancelled()
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ env.GITHUB_TOKEN }}
         with:
           name: ${{ steps.tag.outputs.tag }}
           tag_name: ${{ steps.tag.outputs.tag }}
