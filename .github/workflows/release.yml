@@ -55,7 +55,7 @@ jobs:
           # make package/sms-tool/compile -j$(nproc)
           make package/luci-app-modem/compile -j$(nproc)
 
-          
+
           cd ..
           # TARGET="$(find openwrt-sdk/bin/ | greps sms-tool)"
           CONFIG_TARGET="$(find openwrt-sdk/bin/ | grep luci-app-modem)"
@@ -69,21 +69,21 @@ jobs:
 
           echo "status=success" >> $GITHUB_OUTPUT
 
-      - name: Get tag
-        id: tag
-        uses: dawidd6/action-get-tag@v1
-        with:
-        # Optionally strip `v` prefix
-          strip_v: false
-
-      # - name: 生成发布标签
+      # - name: Get tag
       #   id: tag
-      #   if: steps.compile.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
-      #   run: |
-      #     echo "::set-output name=release_tag::$date"
-      #     touch release.txt
-      #     echo "⏱️ 编译时间: $(date +"%Y年%m月%d日%H时%M分") " >> release.txt
-      #     echo "::set-output name=status::success"
+      #   uses: dawidd6/action-get-tag@v1
+      #   with:
+      #   # Optionally strip `v` prefix
+      #     strip_v: false
+
+      - name: 生成发布标签
+        id: tag
+        if: steps.compile.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
+        run: |
+          echo "::set-output name=release_tag::$date"
+          touch release.txt
+          echo "⏱️ 编译时间: $(date +"%Y年%m月%d日%H时%M分") " >> release.txt
+          echo "::set-output name=status::success"
 
       - name: Upload to release
         uses: softprops/action-gh-release@v1
