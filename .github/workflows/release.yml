@@ -43,7 +43,7 @@ jobs:
           #echo "src-git routing https://github.com/coolsnowwolf/routing" >> feeds.conf.default
           #echo "src-git telephony https://git.openwrt.org/feed/telephony.git" >> feeds.conf.default
 
-          git clone https://github.com/Siriling/5G-Modem-Support.git package/5G-Modem-Support
+          # git clone https://github.com/Siriling/5G-Modem-Support.git package/5G-Modem-Support
           git clone https://github.com/Siriling/luci-app-modem.git package/luci-app-modem
           sudo apt update && sudo apt install minify
 
@@ -56,12 +56,12 @@ jobs:
           make package/luci-app-modem/compile -j$(nproc)
 
           cd ..
-          TARGET="$(find openwrt-sdk/bin/ | greps sms-tool)"
+          # TARGET="$(find openwrt-sdk/bin/ | greps sms-tool)"
           CONFIG_TARGET="$(find openwrt-sdk/bin/ | grep luci-app-modem)"
           CONFIG_I18N_TARGET="$(find openwrt-sdk/bin/ | grep luci-i18n-modem)"
 
           echo 'JSON_RESPONSE<<EOF' >> $GITHUB_OUTPUT
-          echo "$TARGET" >> $GITHUB_OUTPUT
+          # echo "$TARGET" >> $GITHUB_OUTPUT
           echo "$CONFIG_TARGET" >> $GITHUB_OUTPUT
           echo "$CONFIG_I18N_TARGET" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
