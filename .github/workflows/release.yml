@@ -55,6 +55,7 @@ jobs:
           # make package/sms-tool/compile -j$(nproc)
           make package/luci-app-modem/compile -j$(nproc)
 
+          
           cd ..
           # TARGET="$(find openwrt-sdk/bin/ | greps sms-tool)"
           CONFIG_TARGET="$(find openwrt-sdk/bin/ | grep luci-app-modem)"
