@@ -80,7 +80,7 @@ jobs:
         id: tag
         if: steps.compile.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true' && !cancelled()
         run: |
-          echo "::set-output name=release_tag::$date"
+          echo "::set-output name=tag::$date"
           touch release.txt
           echo "⏱️ 编译时间: $(date +"%Y年%m月%d日%H时%M分") " >> release.txt
           echo "::set-output name=status::success"
