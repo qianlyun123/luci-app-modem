@@ -48,11 +48,11 @@ jobs:
           sudo apt update && sudo apt install minify
 
           ./scripts/feeds update -a && ./scripts/feeds install -a
-          echo "CONFIG_PACKAGE_sms-tool=y" >> .config
+          # echo "CONFIG_PACKAGE_sms-tool=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-modem=y" >> .config
 
           make defconfig
-          make package/sms-tool/compile -j$(nproc)
+          # make package/sms-tool/compile -j$(nproc)
           make package/luci-app-modem/compile -j$(nproc)
 
           cd ..
