@@ -24,10 +24,10 @@ function index()
 	entry({"admin", "network", "modem", "status"}, call("act_status")).leaf = true
 
 	--AT命令
-	local modem_number=uci:get('modem','@global[0]','modem_number')
-	if modem_number ~= "0" or modem_number == nil then
+	-- local modem_number=uci:get('modem','@global[0]','modem_number')
+	-- if modem_number ~= "0" or modem_number == nil then
 		entry({"admin", "network", "modem", "at_commands"},template("modem/at_commands"),translate("AT Commands"),30).leaf = true
-	end
+	-- end
 	entry({"admin", "network", "modem", "mode_info"}, call("modeInfo"), nil).leaf = true
 	entry({"admin", "network", "modem", "send_at_command"}, call("sendATCommand"), nil).leaf = true
 	entry({"admin", "network", "modem", "user_at_command"}, call("userATCommand"), nil).leaf = true
