@@ -11,11 +11,14 @@ get_fibocom_mode()
     
     local mode
     case "$mode_num" in
+        "17") mode="qmi" ;; #-
+        "31") mode="qmi" ;; #-
         "32") mode="qmi" ;;
-        # "32") mode="gobinet" ;;
+        "32") mode="gobinet" ;;
         "18") mode="ecm" ;;
-        "33") mode="ecm" ;;
-        "29") mode="mbim" ;;
+        "23") mode="ecm" ;; #-
+        "33") mode="ecm" ;; #-
+        "29") mode="mbim" ;; #-
         "30") mode="mbim" ;;
         "24") mode="rndis" ;;
         "18") mode='ncm' ;;
@@ -63,7 +66,7 @@ fibocom_sim_info()
         isp="中国移动"
     elif [ "$isp" = "CHN-UNICOM" ] || [ "$isp" = "UNICOM" ] || [ "$isp" = "46001" ]; then
         isp="中国联通"
-    elif [ "$isp" = "CHN-CT" ] || [ "$isp" = "CHN-TELECOM" ] || [ "$isp" = "CTCC" ] || [ "$isp" = "46011" ]; then
+    elif [ "$isp" = "CHN-CT" ] || [ "$isp" = "CT" ] || [ "$isp" = "46011" ]; then
         isp="中国电信"
     fi
 

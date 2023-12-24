@@ -74,7 +74,7 @@ quectel_sim_info()
         isp="中国移动"
     elif [ "$isp" = "CHN-UNICOM" ] || [ "$isp" = "UNICOM" ] || [ "$isp" = "46001" ]; then
         isp="中国联通"
-    elif [ "$isp" = "CHN-CT" ] || [ "$isp" = "CHN-TELECOM" ] || [ "$isp" = "CTCC" ] || [ "$isp" = "46011" ]; then
+    elif [ "$isp" = "CHN-CT" ] || [ "$isp" = "CT" ] || [ "$isp" = "46011" ]; then
         isp="中国电信"
     fi
 
