@@ -14,7 +14,7 @@ get_fibocom_mode()
         "17") mode="qmi" ;; #-
         "31") mode="qmi" ;; #-
         "32") mode="qmi" ;;
-        "32") mode="gobinet" ;;
+        # "32") mode="gobinet" ;;
         "18") mode="ecm" ;;
         "23") mode="ecm" ;; #-
         "33") mode="ecm" ;; #-
@@ -84,23 +84,167 @@ fibocom_sim_info()
 	
     #SIM卡号码（手机号）
     at_command="AT+CNUM?"
-	phone=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $2}')
+	sim_number=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $2}')
 }
 
 #网络信息
-fibocom_net_info()
+fibocom_network_info()
 {
-    debug "Fibocom net info"
+    debug "Fibocom network info"
 
     #Network Type（网络类型）
     local at_command="AT+PSRAT?"
-    net_type=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/+PSRAT: //g' | sed 's/\r//g')
+    network_type=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/+PSRAT: //g' | sed 's/\r//g')
 
-    #CSQ
+    # #CSQ
+    # local at_command="AT+CSQ"
+    # csq=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'[ ,]+' '{print $2}')
+    # if [ $CSQ = "99" ]; then
+    #     csq=""
+    # fi
 
-    #per（信号强度）
+    # #PER（信号强度）
+    # if [ -n "$csq" ]; then
+    #     per=$(($csq * 100/31))"%"
+    # fi
 
+    # #RSSI（信号接收强度）
+    # if [ -n "$csq" ]; then
+    #     rssi=$((2 * $csq - 113))" dBm"
+    # fi
 }
+
+#UL_bandwidth
+# $1:上行带宽数字
+get_ul_bandwidth()
+{
+    local ul_bandwidth
+	case $1 in
+        "6") ul_bandwidth="1.4" ;;
+		"15"|"25"|"50"|"75"|"100") ul_bandwidth=$(( $1/5 )) ;;
+	esac
+    echo "$ul_bandwidth"
+}
+
+#DL_bandwidth
+# $1:下行带宽数字
+get_dl_bandwidth()
+{
+    local dl_bandwidth
+	case $1 in
+        "6") ul_bandwidth="1.4" ;;
+        "15"|"25"|"50"|"75"|"100") ul_bandwidth=$(( $1/5 )) ;;
+	esac
+    echo "$dl_bandwidth"
+}
+
+#NR_DL_bandwidth
+# $1:下行带宽数字
+get_nr_dl_bandwidth()
+{
+    local nr_dl_bandwidth
+	case $1 in
+		"0") nr_dl_bandwidth="5" ;;
+		"10"|"15"|"20"|"25"|"30"|"40"|"50"|"60"|"70"|"80"|"90"|"100"|"200"|"400") nr_dl_bandwidth="$1" ;;
+	esac
+    echo "$nr_dl_bandwidth"
+}
+
+#网络信息
+fibocom_cell_info()
+{
+    debug "Fibocom cell info"
+
+    #RSRQ，RSRP，SINR
+    at_command='AT+GTCCINFO?'
+    local response=$(sh $current_dir/modem_at.sh $at_port $at_command)
+    local rat=$(echo "$response" | grep "service" | awk -F' ' '{print $1}')
+    response=$(echo "$response" | sed -n '4p')
+        case $rat in
+            "NR")
+                network_mode="NR5G-SA Mode"
+                nr_mcc=$(echo "$response" | awk -F',' '{print $3}')
+                nr_mnc=$(echo "$response" | awk -F',' '{print $4}')
+                nr_tac=$(echo "$response" | awk -F',' '{print $5}')
+                nr_cell_id=$(echo "$response" | awk -F',' '{print $6}')
+                nr_arfcn=$(echo "$response" | awk -F',' '{print $7}')
+                nr_physical_cell_id=$(echo "$response" | awk -F',' '{print $8}')
+                nr_band=$(echo "$response" | awk -F',' '{print $9}')
+                nr_dl_bandwidth_num=$(echo "$response" | awk -F',' '{print $10}')
+                nr_dl_bandwidth=$(get_nr_dl_bandwidth $nr_dl_bandwidth_num)
+                nr_sinr=$(echo "$response" | awk -F',' '{print $11}')
+                nr_rxlev=$(echo "$response" | awk -F',' '{print $12}')
+                nr_rsrp=$(echo "$response" | awk -F',' '{print $13}')
+                nr_rsrq=$(echo "$response" | awk -F',' '{print $14}' | sed 's/\r//g')
+            ;;
+            "LTE-NR")
+                network_mode="EN-DC Mode"
+                #LTE
+                endc_lte_mcc=$(echo "$response" | awk -F',' '{print $3}')
+                endc_lte_mnc=$(echo "$response" | awk -F',' '{print $4}')
+                endc_lte_tac=$(echo "$response" | awk -F',' '{print $5}')
+                endc_lte_cell_id=$(echo "$response" | awk -F',' '{print $6}')
+                endc_lte_earfcn=$(echo "$response" | awk -F',' '{print $7}')
+                endc_lte_physical_cell_id=$(echo "$response" | awk -F',' '{print $8}')
+                endc_lte_band=$(echo "$response" | awk -F',' '{print $9}')
+                ul_bandwidth_num=$(echo "$response" | awk -F',' '{print $10}')
+                endc_lte_ul_bandwidth=$(get_ul_bandwidth $ul_bandwidth_num)
+                endc_lte_dl_bandwidth="$endc_lte_ul_bandwidth"
+                endc_lte_rssnr=$(echo "$response" | awk -F',' '{print $11}')
+                endc_lte_rxlev=$(echo "$response" | awk -F',' '{print $12}')
+                endc_lte_rsrp=$(echo "$response" | awk -F',' '{print $13}')
+                endc_lte_rsrq=$(echo "$response" | awk -F',' '{print $14}' | sed 's/\r//g')
+                #NR5G-NSA
+                endc_nr_mcc=$(echo "$response" | awk -F',' '{print $3}')
+                endc_nr_mnc=$(echo "$response" | awk -F',' '{print $4}')
+                endc_nr_tac=$(echo "$response" | awk -F',' '{print $5}')
+                endc_nr_cell_id=$(echo "$response" | awk -F',' '{print $6}')
+                endc_nr_arfcn=$(echo "$response" | awk -F',' '{print $7}')
+                endc_nr_physical_cell_id=$(echo "$response" | awk -F',' '{print $8}')
+                endc_nr_band=$(echo "$response" | awk -F',' '{print $9}')
+                nr_dl_bandwidth_num=$(echo "$response" | awk -F',' '{print $10}')
+                endc_nr_dl_bandwidth=$(get_nr_dl_bandwidth $nr_dl_bandwidth_num)
+                endc_nr_sinr=$(echo "$response" | awk -F',' '{print $11}')
+                endc_nr_rxlev=$(echo "$response" | awk -F',' '{print $12}')
+                endc_nr_rsrp=$(echo "$response" | awk -F',' '{print $13}')
+                endc_nr_rsrq=$(echo "$response" | awk -F',' '{print $14}' | sed 's/\r//g')
+                ;;
+            "LTE"|"eMTC"|"NB-IoT")
+                network_mode="LTE Mode"
+                lte_mcc=$(echo "$response" | awk -F',' '{print $3}')
+                lte_mnc=$(echo "$response" | awk -F',' '{print $4}')
+                lte_tac=$(echo "$response" | awk -F',' '{print $5}')
+                lte_cell_id=$(echo "$response" | awk -F',' '{print $6}')
+                lte_earfcn=$(echo "$response" | awk -F',' '{print $7}')
+                lte_physical_cell_id=$(echo "$response" | awk -F',' '{print $8}')
+                lte_band=$(echo "$response" | awk -F',' '{print $9}')
+                ul_bandwidth_num=$(echo "$response" | awk -F',' '{print $10}')
+                lte_ul_bandwidth=$(get_ul_bandwidth $ul_bandwidth_num)
+                lte_dl_bandwidth="$lte_ul_bandwidth"
+                lte_rssnr=$(echo "$response" | awk -F',' '{print $11}')
+                lte_rxlev=$(echo "$response" | awk -F',' '{print $12}')
+                lte_rsrp=$(echo "$response" | awk -F',' '{print $13}')
+                lte_rsrq=$(echo "$response" | awk -F',' '{print $14}' | sed 's/\r//g')
+            ;;
+            "UMTS")
+                network_mode="WCDMA Mode"
+                wcdma_mcc=$(echo "$response" | awk -F',' '{print $3}')
+                wcdma_mnc=$(echo "$response" | awk -F',' '{print $4}')
+                wcdma_lac=$(echo "$response" | awk -F',' '{print $5}')
+                wcdma_cell_id=$(echo "$response" | awk -F',' '{print $6}')
+                wcdma_uarfcn=$(echo "$response" | awk -F',' '{print $7}')
+                wcdma_psc=$(echo "$response" | awk -F',' '{print $8}')
+                wcdma_band=$(echo "$response" | awk -F',' '{print $9}')
+                wcdma_ecno=$(echo "$response" | awk -F',' '{print $10}')
+                wcdma_rscp=$(echo "$response" | awk -F',' '{print $11}')
+                wcdma_rac=$(echo "$response" | awk -F',' '{print $12}')
+                wcdma_rxlev=$(echo "$response" | awk -F',' '{print $13}')
+                wcdma_reserved=$(echo "$response" | awk -F',' '{print $14}')
+                wcdma_ecio=$(echo "$response" | awk -F',' '{print $15}' | sed 's/\r//g')
+            ;;
+        esac
+}
+
 
 # fibocom获取基站信息
 Fibocom_Cellinfo()
@@ -246,9 +390,11 @@ get_fibocom_info()
 	#SIM卡信息
     fibocom_sim_info
     #网络信息
-    fibocom_net_info
+    fibocom_network_info
+    #小区信息
+    fibocom_cell_info
 
-    # All_CSQ
+    return
     # Fibocom_Cellinfo
 
     #基站信息
