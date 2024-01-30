@@ -13,22 +13,43 @@ msgstr "模组状态"
 msgid "Modem Name"
 msgstr "模组名称"
 
+msgid "Modem Debug"
+msgstr "模组调试"
+
 msgid "Modem Select"
-msgstr "选择模组"
+msgstr "模组选择"
 
 msgid "Check information about adapted modem on this page"
 msgstr "在此页面查看已适配模组的信息"
 
+msgid "Not adapted to this modem"
+msgstr "未适配该模组"
+
+msgid "Loading modem information"
+msgstr "正在加载模组信息"
+
 msgid "Loading modem status"
 msgstr "正在加载模组状态"
 
-msgid "Connect"
+msgid "Loading modem"
+msgstr "正在加载模组"
+
+msgid "Dial Config"
+msgstr "拨号配置"
+
+msgid "Add dialing configuration to all modules on this page"
+msgstr "在此页面给所有模组添加拨号配置"
+
+msgid "Global Config"
+msgstr "全局配置"
+
+msgid "connect"
 msgstr "已连接"
 
-msgid "Disconnect"
+msgid "disconnect"
 msgstr "未连接"
 
-msgid "Disabled"
+msgid "disabled"
 msgstr "未启用"
 
 msgid "Data Interface"
@@ -43,14 +64,56 @@ msgstr "连接状态"
 msgid "Config List"
 msgstr "配置列表"
 
-msgid "Configuration panel for Modem, Add configuration to all modems on this page"
-msgstr "通信模组服务配置界面，在此页面给所有模组添加配置"
+msgid "Debug Your Module"
+msgstr "调试你的模组"
 
-msgid "AT Commands"
+msgid "Select a modem for debugging"
+msgstr "选择一个模组进行调试"
+
+msgid "Network Preferences"
+msgstr "网络偏好"
+
+msgid "Current"
+msgstr "当前"
+
+msgid "Option"
+msgstr "选项"
+
+msgid "Config"
+msgstr "配置"
+
+msgid "AT Command"
 msgstr "AT命令"
 
-msgid "Debugging Your Module with AT Command"
-msgstr "使用AT命令调试你的模组"
+msgid "Quick Option"
+msgstr "快捷选项"
+
+msgid "Auto"
+msgstr "自动"
+
+msgid "Custom"
+msgstr "自定义"
+
+msgid "Quick Commands"
+msgstr "快捷命令"
+
+msgid "Enter Command"
+msgstr "输入命令"
+
+msgid "Apply"
+msgstr "应用"
+
+msgid "Send"
+msgstr "发送"
+
+msgid "Clean"
+msgstr "清空"
+
+msgid "Response"
+msgstr "响应"
+
+msgid "Return to old page"
+msgstr "返回旧界面"
 
 msgid "Modem Information"
 msgstr "模组信息"
@@ -70,10 +133,13 @@ msgstr "高级配置"
 msgid "Remarks"
 msgstr "备注"
 
-msgid "Moblie Network"
+msgid "Mobile Network"
 msgstr "移动网络"
 
 msgid "UNKNOWN"
+msgstr "未知"
+
+msgid "unknown"
 msgstr "未知"
 
 msgid "Mobile network not found"
@@ -142,9 +208,6 @@ msgstr "固件版本"
 msgid "AT Port"
 msgstr "AT串口"
 
-msgid "Mobile Network"
-msgstr "移动网络"
-
 msgid "Temperature"
 msgstr "温度"
 
@@ -157,17 +220,29 @@ msgstr "SIM卡信息"
 msgid "ISP"
 msgstr "运营商"
 
-msgid "IMEI"
-msgstr "IMEI"
+msgid "SIM Slot"
+msgstr "SIM卡卡槽"
 
-msgid "IMSI"
-msgstr "IMSI"
+msgid "SIM Status"
+msgstr "SIM卡状态"
 
-msgid "ICCID"
-msgstr "ICCID"
+msgid "miss"
+msgstr "未插入"
+
+msgid "locked"
+msgstr "锁定"
 
 msgid "SIM Number"
 msgstr "SIM卡号码"
+
+msgid "IMEI"
+msgstr "国际移动设备识别码"
+
+msgid "IMSI"
+msgstr "国际移动用户识别码"
+
+msgid "ICCID"
+msgstr "集成电路卡识别码"
 
 msgid "Network Information"
 msgstr "网络信息"
@@ -177,6 +252,21 @@ msgstr "网络类型"
 
 msgid "Cell Information"
 msgstr "小区信息"
+
+msgid "Network Mode"
+msgstr "网络模式"
+
+msgid "NR5G-SA Mode"
+msgstr "NR5G-SA 模式"
+
+msgid "EN-DC Mode"
+msgstr "EN-DC 模式"
+
+msgid "LTE Mode"
+msgstr "LTE 模式"
+
+msgid "WCDMA Mode"
+msgstr "WCDMA 模式"
 
 msgid "MCC"
 msgstr "移动国家代码"
@@ -253,10 +343,16 @@ msgstr "路由区域码"
 msgid "RSCP"
 msgstr "接收信号码功率"
 
-msgid "Ec/Io"
+msgid "每比特能量与干扰功率密度(干扰比)之比"
+msgstr "Eb/Io"
+
+msgid "每比特能量与噪声功率密度(噪声比)之比"
+msgstr "Eb/No"
+
+msgid "每码片能量与干扰功率密度(干扰比)之比"
 msgstr "Ec/Io"
 
-msgid "Ec/No"
+msgid "每码片能量与噪声功率密度(噪声比)之比"
 msgstr "Ec/No"
 
 msgid "Physical Channel"
@@ -276,3 +372,39 @@ msgstr "压缩模式"
 
 msgid "RxLev"
 msgstr "接收信号功率"
+
+msgid "CHN-CMCC"
+msgstr "中国移动"
+
+msgid "CMCC"
+msgstr "中国移动"
+
+msgid "46000"
+msgstr "中国移动"
+
+msgid "CHN-UNICOM"
+msgstr "中国联通"
+
+msgid "UNICOM"
+msgstr "中国联通"
+
+msgid "CUCC"
+msgstr "中国联通"
+
+msgid "46001"
+msgstr "中国联通"
+
+msgid "CHN-CT"
+msgstr "中国电信"
+
+msgid "CHN-TELECOM"
+msgstr "中国电信"
+
+msgid "CTCC"
+msgstr "中国电信"
+
+msgid "CT"
+msgstr "中国电信"
+
+msgid "46011"
+msgstr "中国电信"

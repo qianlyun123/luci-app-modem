@@ -40,20 +40,16 @@ at()
 # debug $1
 # at $1 $2
 
-#获取模块拨号模式
-# $1:制造商
-# $2:AT串口
-get_mode()
+#获取快捷命令
+# $1:快捷选项
+# $2:制造商
+get_quick_commands()
 {
-	local mode
+	local quick_commands
 	case $1 in
-		"quectel") mode=$(get_quectel_mode "$2") ;;
-		"fibocom") mode=$(get_fibocom_mode "$2") ;;
-		"simcom") mode=$(get_simcom_mode "$2") ;;
-		"*") 
-			debug "未适配该模块"
-			mode="unknown"
-			;;
+		"auto") quick_commands=$(cat $current_dir/$2_at_commands.json) ;;
+		"custom") quick_commands=$(cat /etc/modem/custom_at_commands.json) ;;
+		*) quick_commands=$(cat $current_dir/$2_at_commands.json) ;;
 	esac
-	echo "$mode"
+	echo "$quick_commands"
 }

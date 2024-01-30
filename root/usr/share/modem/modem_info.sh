@@ -9,23 +9,26 @@ source "$current_dir/simcom.sh"
 init_modem_info()
 {
 	#基本信息
-	name='' 		#名称
-	manufacturer='' #制造商
-	revision='-'	#固件版本
-	at_port='-'		#AT串口
-	mode=''			#拨号模式
+	name='unknown' 			#名称
+	manufacturer='unknown'	#制造商
+	revision='-'			#固件版本
+	at_port='-'				#AT串口
+	mode='unknown'			#拨号模式
 	temperature="NaN $(printf "\xc2\xb0")C"	#温度
-    update_time=''	#更新时间
+    update_time='-'			#更新时间
 
 	#SIM卡信息
-	isp="-"			#运营商（互联网服务提供商）
-	imei='-'		#IMEI
-	imsi='-'		#IMSI
-	iccid='-'		#ICCID
-	sim_number='-'	#SIM卡号码（手机号）
+	sim_status="miss"	#SIM卡状态
+	sim_slot="-"		#SIM卡卡槽
+	isp="-"				#运营商（互联网服务提供商）
+	sim_number='-'		#SIM卡号码（手机号）
+	imei='-'			#IMEI
+	imsi='-'			#IMSI
+	iccid='-'			#ICCID
 
 	#网络信息
-	network_type="-"	#蜂窝网络类型
+	connect_status="disconnect"	#SIM卡状态
+	network_type="-" #蜂窝网络类型
 
 	#小区信息
 	network_mode="-" #网络模式
@@ -130,25 +133,74 @@ init_modem_info()
 	qos="" #最大Qos级别
 }
 
-#获取信号信息
-get_cell_info()
+#设置基本信息
+set_base_info()
+{
+	base_info="\"base_info\":{
+		\"manufacturer\":\"$manufacturer\",
+		\"revision\":\"$revision\",
+		\"at_port\":\"$at_port\",
+		\"mode\":\"$mode\",
+		\"temperature\":\"$temperature\",
+		\"update_time\":\"$update_time\"
+	},"
+}
+
+#设置SIM卡信息
+set_sim_info()
+{
+	if [ "$sim_status" = "ready" ]; then
+		sim_info="\"sim_info\":[
+			{\"ISP\":\"$isp\", \"full_name\":\"Internet Service Provider\"},
+			{\"SIM Slot\":\"$sim_slot\", \"full_name\":\"SIM Slot\"},
+			{\"SIM Number\":\"$sim_number\", \"full_name\":\"SIM Number\"},
+			{\"IMEI\":\"$imei\", \"full_name\":\"International Mobile Equipment Identity\"},
+			{\"IMSI\":\"$imsi\", \"full_name\":\"International Mobile Subscriber Identity\"},
+			{\"ICCID\":\"$iccid\", \"full_name\":\"Integrate Circuit Card Identity\"}
+		],"
+	elif [ "$sim_status" = "miss" ]; then
+		sim_info="\"sim_info\":[
+			{\"SIM Status\":\"$sim_status\", \"full_name\":\"SIM Status\"},
+			{\"IMEI\":\"$imei\", \"full_name\":\"International Mobile Equipment Identity\"}
+		],"
+	elif [ "$sim_status" = "locked" ]; then
+		sim_info="\"sim_info\":[
+			{\"SIM Status\":\"$sim_status\", \"full_name\":\"SIM Status\"},
+			{\"SIM Slot\":\"$sim_slot\", \"full_name\":\"SIM Slot\"},
+			{\"IMEI\":\"$imei\", \"full_name\":\"International Mobile Equipment Identity\"},
+			{\"IMSI\":\"$imsi\", \"full_name\":\"International Mobile Subscriber Identity\"},
+			{\"ICCID\":\"$iccid\", \"full_name\":\"Integrate Circuit Card Identity\"}
+		],"
+	fi
+}
+
+#设置网络信息
+set_network_info()
+{
+	network_info="\"network_info\":{
+		\"network_type\":\"$network_type\"
+	},"
+}
+
+#设置信号信息
+set_cell_info()
 {
 	if [ "$network_mode" = "NR5G-SA Mode" ]; then
 		cell_info="\"cell_info\":{
 			\"NR5G-SA Mode\":[
 				{\"MCC\":\"$nr_mcc\", \"full_name\":\"Mobile Country Code\"},
 				{\"MNC\":\"$nr_mnc\", \"full_name\":\"Mobile Network Code\"},
-				{\"Duplex Mode\":\"$nr_duplex_mode\"},
-				{\"Cell ID\":\"$nr_cell_id\"},
-				{\"Physical Cell ID\":\"$nr_physical_cell_id\"},
+				{\"Duplex Mode\":\"$nr_duplex_mode\", \"full_name\":\"Duplex Mode\"},
+				{\"Cell ID\":\"$nr_cell_id\", \"full_name\":\"Cell ID\"},
+				{\"Physical Cell ID\":\"$nr_physical_cell_id\", \"full_name\":\"Physical Cell ID\"},
 				{\"TAC\":\"$nr_tac\", \"full_name\":\"Tracking area code of cell servedby neighbor Enb\"},
 				{\"ARFCN\":\"$nr_arfcn\", \"full_name\":\"Absolute Radio-Frequency Channel Number\"},
-				{\"Band\":\"$nr_band\"},
-				{\"DL Bandwidth\":\"$nr_dl_bandwidth\"},
+				{\"Band\":\"$nr_band\", \"full_name\":\"Band\"},
+				{\"DL Bandwidth\":\"$nr_dl_bandwidth\", \"full_name\":\"DL Bandwidth\"},
 				{\"RSRP\":\"$nr_rsrp\", \"full_name\":\"Reference Signal Received Power\"},
 				{\"RSRQ\":\"$nr_rsrq\", \"full_name\":\"Reference Signal Received Quality\"},
 				{\"SINR\":\"$nr_sinr\", \"full_name\":\"Signal to Interference plus Noise Ratio Bandwidth\"},
-				{\"SCS\":\"$nr_scs\"},
+				{\"SCS\":\"$nr_scs\", \"full_name\":\"SCS\"},
 				{\"RxLev\":\"$nr_rxlev\", \"full_name\":\"Received Signal Level\"}
 			]
 		}"
@@ -158,13 +210,14 @@ get_cell_info()
 				{\"LTE\":[
 						{\"MCC\":\"$endc_lte_mcc\", \"full_name\":\"Mobile Country Code\"},
 						{\"MNC\":\"$endc_lte_mnc\", \"full_name\":\"Mobile Network Code\"},
-						{\"Duplex Mode\":\"$endc_lte_duplex_mode\"},
-						{\"Cell ID\":\"$endc_lte_cell_id\"},
-						{\"Physical Cell ID\":\"$endc_lte_physical_cell_id\"},
+						{\"Duplex Mode\":\"$endc_lte_duplex_mode\", \"full_name\":\"Duplex Mode\"},
+						{\"Cell ID\":\"$endc_lte_cell_id\", \"full_name\":\"Cell ID\"},
+						{\"Physical Cell ID\":\"$endc_lte_physical_cell_id\", \"full_name\":\"Physical Cell ID\"},
 						{\"EARFCN\":\"$endc_lte_earfcn\", \"full_name\":\"E-UTRA Absolute Radio Frequency Channel Number\"},
-						{\"Freq band indicator\":\"$endc_lte_freq_band_ind\"},
-						{\"UL Bandwidth\":\"$endc_lte_ul_bandwidth\"},
-						{\"DL Bandwidth\":\"$endc_lte_dl_bandwidth\"},
+						{\"Freq band indicator\":\"$endc_lte_freq_band_ind\", \"full_name\":\"Freq band indicator\"},
+						{\"Band\":\"$endc_lte_band\", \"full_name\":\"Band\"},
+						{\"UL Bandwidth\":\"$endc_lte_ul_bandwidth\", \"full_name\":\"UL Bandwidth\"},
+						{\"DL Bandwidth\":\"$endc_lte_dl_bandwidth\", \"full_name\":\"DL Bandwidth\"},
 						{\"TAC\":\"$endc_lte_tac\", \"full_name\":\"Tracking area code of cell servedby neighbor Enb\"},
 						{\"RSRP\":\"$endc_lte_rsrp\", \"full_name\":\"Reference Signal Received Power\"},
 						{\"RSRQ\":\"$endc_lte_rsrq\", \"full_name\":\"Reference Signal Received Quality\"},
@@ -172,7 +225,7 @@ get_cell_info()
 						{\"SINR\":\"$endc_lte_sinr\", \"full_name\":\"Signal to Interference plus Noise Ratio Bandwidth\"},
 						{\"RSSNR\":\"$endc_lte_rssnr\", \"full_name\":\"Radio Signal Strength Noise Ratio\"},
 						{\"CQI\":\"$endc_lte_cql\", \"full_name\":\"Channel Quality Indicator\"},
-						{\"TX Power\":\"$endc_lte_tx_power\"},
+						{\"TX Power\":\"$endc_lte_tx_power\", \"full_name\":\"TX Power\"},
 						{\"RxLev\":\"$endc_lte_rxlev\", \"full_name\":\"Received Signal Level\"}
 					]
 				},
@@ -180,14 +233,14 @@ get_cell_info()
 				{\"NR5G-NSA\":[
 						{\"MCC\":\"$endc_nr_mcc\", \"full_name\":\"Mobile Country Code\"},
 						{\"MNC\":\"$endc_nr_mnc\", \"full_name\":\"Mobile Network Code\"},
-						{\"Physical Cell ID\":\"$endc_nr_physical_cell_id\"},
+						{\"Physical Cell ID\":\"$endc_nr_physical_cell_id\", \"full_name\":\"Physical Cell ID\"},
 						{\"ARFCN\":\"$endc_nr_arfcn\", \"full_name\":\"Absolute Radio-Frequency Channel Number\"},
-						{\"Band\":\"$endc_nr_band\"},
-						{\"DL Bandwidth\":\"$endc_nr_dl_bandwidth\"},
+						{\"Band\":\"$endc_nr_band\", \"full_name\":\"Band\"},
+						{\"DL Bandwidth\":\"$endc_nr_dl_bandwidth\", \"full_name\":\"DL Bandwidth\"},
 						{\"RSRP\":\"$endc_nr_rsrp\", \"full_name\":\"Reference Signal Received Power\"},
 						{\"RSRQ\":\"$endc_nr_rsrq\", \"full_name\":\"Reference Signal Received Quality\"},
 						{\"SINR\":\"$endc_nr_sinr\", \"full_name\":\"Signal to Interference plus Noise Ratio Bandwidth\"},
-						{\"SCS\":\"$endc_nr_scs\"}
+						{\"SCS\":\"$endc_nr_scs\", \"full_name\":\"SCS\"}
 					]
 				}
 			]
@@ -197,13 +250,14 @@ get_cell_info()
 			\"LTE Mode\":[
 				{\"MCC\":\"$lte_mcc\", \"full_name\":\"Mobile Country Code\"},
 				{\"MNC\":\"$lte_mnc\", \"full_name\":\"Mobile Network Code\"},
-				{\"Duplex Mode\":\"$lte_duplex_mode\"},
-				{\"Cell ID\":\"$lte_cell_id\"},
-				{\"Physical Cell ID\":\"$lte_physical_cell_id\"},
+				{\"Duplex Mode\":\"$lte_duplex_mode\", \"full_name\":\"Duplex Mode\"},
+				{\"Cell ID\":\"$lte_cell_id\", \"full_name\":\"Cell ID\"},
+				{\"Physical Cell ID\":\"$lte_physical_cell_id\", \"full_name\":\"Physical Cell ID\"},
 				{\"EARFCN\":\"$lte_earfcn\", \"full_name\":\"E-UTRA Absolute Radio Frequency Channel Number\"},
-				{\"Freq band indicator\":\"$lte_freq_band_ind\"},
-				{\"UL Bandwidth\":\"$lte_ul_bandwidth\"},
-				{\"DL Bandwidth\":\"$lte_dl_bandwidth\"},
+				{\"Freq band indicator\":\"$lte_freq_band_ind\", \"full_name\":\"Freq band indicator\"},
+				{\"Band\":\"$lte_band\", \"full_name\":\"Band\"},
+				{\"UL Bandwidth\":\"$lte_ul_bandwidth\", \"full_name\":\"UL Bandwidth\"},
+				{\"DL Bandwidth\":\"$lte_dl_bandwidth\", \"full_name\":\"DL Bandwidth\"},
 				{\"TAC\":\"$lte_tac\", \"full_name\":\"Tracking area code of cell servedby neighbor Enb\"},
 				{\"RSRP\":\"$lte_rsrp\", \"full_name\":\"Reference Signal Received Power\"},
 				{\"RSRQ\":\"$lte_rsrq\", \"full_name\":\"Reference Signal Received Quality\"},
@@ -211,8 +265,8 @@ get_cell_info()
 				{\"SINR\":\"$lte_sinr\", \"full_name\":\"Signal to Interference plus Noise Ratio Bandwidth\"},
 				{\"RSSNR\":\"$lte_rssnr\", \"full_name\":\"Radio Signal Strength Noise Ratio\"},
 				{\"CQI\":\"$lte_cql\", \"full_name\":\"Channel Quality Indicator\"},
-				{\"TX Power\":\"$lte_tx_power\"},
-				{\"RxLev\":\"$lte_rxlev\"}
+				{\"TX Power\":\"$lte_tx_power\", \"full_name\":\"TX Power\"},
+				{\"RxLev\":\"$lte_rxlev\", \"full_name\":\"RxLev\"}
 			]
 		}"
 	elif  [ "$network_mode" = "WCDMA Mode" ]; then
@@ -221,19 +275,20 @@ get_cell_info()
 				{\"MCC\":\"$wcdma_mcc\", \"full_name\":\"Mobile Country Code\"},
 				{\"MNC\":\"$wcdma_mnc\", \"full_name\":\"Mobile Network Code\"},
 				{\"LAC\":\"$wcdma_lac\", \"full_name\":\"Location Area Code\"},
-				{\"Cell ID\":\"$wcdma_cell_id\"},
+				{\"Cell ID\":\"$wcdma_cell_id\", \"full_name\":\"Cell ID\"},
 				{\"UARFCN\":\"$wcdma_uarfcn\", \"full_name\":\"UTRA Absolute Radio Frequency Channel Number\"},
 				{\"PSC\":\"$wcdma_psc\", \"full_name\":\"Primary Scrambling Code\"},
 				{\"RAC\":\"$wcdma_rac\", \"full_name\":\"Routing Area Code\"},
+				{\"Band\":\"$wcdma_band\", \"full_name\":\"Band\"},
 				{\"RSCP\":\"$wcdma_rscp\", \"full_name\":\"Received Signal Code Power\"},
-				{\"Ec/Io\":\"$wcdma_ecio\"},
-				{\"Ec/No\":\"$wcdma_ecno\"},
-				{\"Physical Channel\":\"$wcdma_phych\"},
-				{\"Spreading Factor\":\"$wcdma_sf\"},
-				{\"Slot\":\"$wcdma_slot\"},
-				{\"Speech Code\":\"$wcdma_speech_code\"},
-				{\"Compression Mode\":\"$wcdma_com_mod\"},
-				{\"RxLev\":\"$wcdma_rxlev\"}
+				{\"Ec/Io\":\"$wcdma_ecio\", \"full_name\":\"Ec/Io\"},
+				{\"Ec/No\":\"$wcdma_ecno\", \"full_name\":\"Ec/No\"},
+				{\"Physical Channel\":\"$wcdma_phych\", \"full_name\":\"Physical Channel\"},
+				{\"Spreading Factor\":\"$wcdma_sf\", \"full_name\":\"Spreading Factor\"},
+				{\"Slot\":\"$wcdma_slot\", \"full_name\":\"Slot\"},
+				{\"Speech Code\":\"$wcdma_speech_code\", \"full_name\":\"Speech Code\"},
+				{\"Compression Mode\":\"$wcdma_com_mod\", \"full_name\":\"Compression Mode\"},
+				{\"RxLev\":\"$wcdma_rxlev\", \"full_name\":\"RxLev\"}
 			]
 		}"
 	fi
@@ -242,36 +297,30 @@ get_cell_info()
 #以Json格式保存模组信息
 info_to_json()
 {
-    modem_info="{
+	base_info="\"base_info\":{},"
+	sim_info="\"sim_info\":{},"
+	network_info="\"network_info\":{},"
+	cell_info="\"cell_info\":{}"
+	
+	#设置基本信息
+	set_base_info
 
-		\"base_info\":{
-			\"manufacturer\":\"$manufacturer\",
-			\"revision\":\"$revision\",
-			\"at_port\":\"$at_port\",
-			\"mode\":\"$mode\",
-			\"temperature\":\"$temperature\",
-			\"update_time\":\"$update_time\"
-		},
+	#判断是否适配
+	if [ "$manufacturer" != "unknown" ]; then
+		#设置SIM卡信息
+		set_sim_info
+	fi
 
-		\"sim_info\":{
-			\"isp\":\"$isp\",
-			\"imei\":\"$imei\",
-			\"imsi\":\"$imsi\",
-			\"iccid\":\"$iccid\",
-			\"sim_number\":\"$sim_number\"
-		},
-
-		\"network_info\":{
-			\"network_type\":\"$network_type\"
-		},
-
-    "
-
-	#获取信号信息
-	get_cell_info
+	#判断插卡和连接状态
+	if [ "$sim_status" = "ready" ] && [ "$connect_status" = "connect" ]; then
+		#设置网络信息
+		set_network_info
+		#设置小区信息
+		set_cell_info
+    fi
 
 	#拼接所有信息（不要漏掉最后一个}）
-	modem_info="$modem_info$cell_info}"
+	modem_info="{$base_info$modem_info$sim_info$network_info$cell_info}"
 }
         # echo $ECIO #参考信号接收质量 RSRQ ecio
         # echo $ECIO1 #参考信号接收质量 RSRQ ecio1
@@ -299,37 +348,20 @@ get_modem_info()
 {
 	update_time=$(date +"%Y-%m-%d %H:%M:%S")
 
-	debug "检查模块的AT串口"
+	debug "检查模组的AT串口"
 	#获取模块AT串口
 	if [ -z "$at_port" ]; then
-		debug "模块0没有找到AT串口"
+		debug "模组没有AT串口"
 		return
 	fi
 
-	debug "检查SIM状态"
-	local sim_status=$(echo `sh $current_dir/modem_at.sh $at_port "AT+CPIN?"`)
-    local sim_error=$(echo "$sim_status" | grep "ERROR")
-	if [ -n "$sim_error" ]; then
-		debug "未插入SIM卡"
-        sleep 1s
-		return
-	fi
-	local sim_ready=$(echo "$sim_status" | grep "READY")
-	if [ -n "$sim_ready" ]; then
-		debug "SIM卡正常"
-	else
-		debug "SIM卡被锁定"
-		sleep 1s
-		return
-	fi
-
-    debug "根据模块类型开始采集数据"
+    debug "根据模组的制造商获取信息"
 	#更多信息获取
 	case $manufacturer in
 		"quectel") get_quectel_info $at_port ;;
 		"fibocom") get_fibocom_info $at_port ;;
 		"simcom") get_simcom_info $at_port ;;
-		"*") debug "未适配该模块" ;;
+		*) debug "未适配该模组" ;;
 	esac
 
 	#获取更新时间

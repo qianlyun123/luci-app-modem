@@ -2,10 +2,11 @@ local d = require "luci.dispatcher"
 local uci = luci.model.uci.cursor()
 
 m = Map("modem")
-m.title = translate("Modem Config")
-m.description = translate("Configuration panel for Modem, Add configuration to all modems on this page")
+m.title = translate("Dial Config")
+m.description = translate("Add dialing configuration to all modules on this page")
 
-s = m:section(NamedSection, "global", "global")
+--全局配置
+s = m:section(NamedSection, "global", "global", translate("Global Config"))
 s.anonymous = true
 s.addremove = false
 
@@ -44,7 +45,7 @@ o.rmempty = false
 
 o = s:option(DummyValue, "remarks", translate("Remarks"))
 
-o = s:option(DummyValue, "network", translate("Moblie Network"))
+o = s:option(DummyValue, "network", translate("Mobile Network"))
 o.cfgvalue = function(t, n)
     -- 检测移动网络是否存在
     local network = (Value.cfgvalue(t, n) or "")
@@ -60,7 +61,7 @@ end
 
 o = s:option(DummyValue, "dial_tool", translate("Dial Tool"))
 o.cfgvalue = function(t, n)
-    local dial_tool = (Value.cfgvalue(t, n) or ""):upper()
+    local dial_tool = (Value.cfgvalue(t, n) or "")
     if dial_tool == "" then
         dial_tool=translate("Auto Choose")
     end
@@ -75,7 +76,7 @@ end
 
 o = s:option(DummyValue, "apn", translate("APN"))
 o.cfgvalue = function(t, n)
-    local apn = (Value.cfgvalue(t, n) or ""):gsub("_","/"):upper():gsub("V","v")
+    local apn = (Value.cfgvalue(t, n) or "")
     if apn == "" then
         apn=translate("Auto Choose")
     end
