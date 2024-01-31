@@ -13,6 +13,9 @@ PKG_LICENSE:=GPLv3
 PKG_LINCESE_FILES:=LICENSE
 PKF_MAINTAINER:=siriling <siriling@qq.com>
 LUCI_DEPENDS:=+luci-compat \
+		+usbutils \
+		+pciutils \
+		+quectel-CM-5G \
 		+sms-tool +jq +grep\
 
 define Package/luci-app-modem/conffiles
