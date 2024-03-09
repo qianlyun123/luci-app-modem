@@ -115,6 +115,24 @@ msgstr "响应"
 msgid "Return to old page"
 msgstr "返回旧界面"
 
+msgid "Custom quick commands"
+msgstr "自定义快捷命令"
+
+msgid "Customize your quick commands"
+msgstr "自定义你的快捷命令"
+
+msgid "Custom Commands"
+msgstr "自定义命令"
+
+msgid "Serial Number"
+msgstr "序号"
+
+msgid "Description"
+msgstr "描述"
+
+msgid "Command"
+msgstr "命令"
+
 msgid "Modem Information"
 msgstr "模组信息"
 
@@ -217,11 +235,14 @@ msgstr "更新时间"
 msgid "SIM Information"
 msgstr "SIM卡信息"
 
+msgid "Unknown SIM card status"
+msgstr "未知SIM卡状态"
+
+msgid "SIM card not inserted"
+msgstr "SIM卡未插入"
+
 msgid "ISP"
 msgstr "运营商"
-
-msgid "SIM Slot"
-msgstr "SIM卡卡槽"
 
 msgid "SIM Status"
 msgstr "SIM卡状态"
@@ -231,6 +252,9 @@ msgstr "未插入"
 
 msgid "locked"
 msgstr "锁定"
+
+msgid "SIM Slot"
+msgstr "SIM卡卡槽"
 
 msgid "SIM Number"
 msgstr "SIM卡号码"
@@ -249,6 +273,18 @@ msgstr "网络信息"
 
 msgid "Network Type"
 msgstr "网络类型"
+
+msgid "Tx Rate"
+msgstr "上传速率"
+
+msgid "Rx Rate"
+msgstr "下载速率"
+
+msgid "RSSI"
+msgstr "接收信号强度指示"
+
+msgid "BER"
+msgstr "信道误码率"
 
 msgid "Cell Information"
 msgstr "小区信息"

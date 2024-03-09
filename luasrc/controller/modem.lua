@@ -31,11 +31,10 @@ function index()
 	entry({"admin", "network", "modem", "get_modem_debug_info"}, call("getModemDebugInfo"), nil).leaf = true
 	entry({"admin", "network", "modem", "set_mode"}, call("setMode"), nil).leaf = true
 	entry({"admin", "network", "modem", "set_network_prefer"}, call("setNetworkPrefer"), nil).leaf = true
+	entry({"admin", "network", "modem", "quick_commands_config"}, cbi("modem/quick_commands_config")).leaf = true
 
 	--AT命令旧界面
 	entry({"admin", "network", "modem", "at_command_old"},template("modem/at_command_old")).leaf = true
-
-
 end
 
 --[[
@@ -150,50 +149,56 @@ function getModemInfo()
 	--设置翻译
 	local translation={}
 	--设备信息翻译
-	if modem_device_info then
-		-- local name=modem_device_info["name"]
-		-- translation[name]=luci.i18n.translate(name)
-		-- local manufacturer=modem_device_info["manufacturer"]
-		-- translation[manufacturer]=luci.i18n.translate(manufacturer)
-		-- local mode=modem_device_info["mode"]
-		-- translation[mode]=luci.i18n.translate(mode)
-		local data_interface=modem_device_info["data_interface"]
-		translation[data_interface]=luci.i18n.translate(data_interface)
-		local network=modem_device_info["network"]
-		translation[network]=luci.i18n.translate(network)
-	end
+	-- if modem_device_info then
+	-- 	local name=modem_device_info["name"]
+	-- 	translation[name]=luci.i18n.translate(name)
+	-- 	local manufacturer=modem_device_info["manufacturer"]
+	-- 	translation[manufacturer]=luci.i18n.translate(manufacturer)
+	-- 	local mode=modem_device_info["mode"]
+	-- 	translation[mode]=luci.i18n.translate(mode)
+	-- 	local data_interface=modem_device_info["data_interface"]
+	-- 	translation[data_interface]=luci.i18n.translate(data_interface)
+	-- 	local network=modem_device_info["network"]
+	-- 	translation[network]=luci.i18n.translate(network)
+	-- end
 
 	--基本信息翻译
-	if modem_more_info["base_info"] then
-		for key in pairs(modem_more_info["base_info"]) do
-			local value=modem_more_info["base_info"][key]
-			--翻译值
-			translation[value]=luci.i18n.translate(value)
-		end
-	end
+	-- if modem_more_info["base_info"] then
+	-- 	for key in pairs(modem_more_info["base_info"]) do
+	-- 		local value=modem_more_info["base_info"][key]
+	-- 		--翻译值
+	-- 		translation[value]=luci.i18n.translate(value)
+	-- 	end
+	-- end
 	--SIM卡信息翻译
 	if modem_more_info["sim_info"] then
 		local sim_info=modem_more_info["sim_info"]
 		for i = 1, #sim_info do
 			local info = sim_info[i]
 			for key in pairs(info) do
+				--翻译键
 				translation[key]=luci.i18n.translate(key)
-				local value=info[key]
-				if hasLetters(value) then
-					translation[value]=luci.i18n.translate(value)
-				end
+				-- local value=info[key]
+				-- if hasLetters(value) then
+				-- 	--翻译值
+				-- 	translation[value]=luci.i18n.translate(value)
+				-- end
 			end
 		end
 	end
 	--网络信息翻译
 	if modem_more_info["network_info"] then
-		for key in pairs(modem_more_info["network_info"]) do
-			--翻译键
-			translation[key]=luci.i18n.translate(key)
-			local value=modem_more_info["network_info"][key]
-			if hasLetters(value) then
-				--翻译值
-				translation[value]=luci.i18n.translate(value)
+		local network_info=modem_more_info["network_info"]
+		for i = 1, #network_info do
+			local info = network_info[i]
+			for key in pairs(info) do
+				--翻译键
+				translation[key]=luci.i18n.translate(key)
+				-- local value=info[key]
+				-- if hasLetters(value) then
+				-- 	--翻译值
+				-- 	translation[value]=luci.i18n.translate(value)
+				-- end
 			end
 		end
 	end
@@ -354,12 +359,24 @@ function getQuickCommands()
 		quick_option="custom"
 	end
 
-	--获取模组AT命令
-	local odpall = io.popen("cd "..script_path.." && source "..script_path.."modem_debug.sh && get_quick_commands "..quick_option.." "..manufacturer)
-	local opd = odpall:read("*a")
-	odpall:close()
-	local quick_commands=json.parse(opd)
-	
+	local quick_commands={}
+	local commands={}
+	if quick_option=="auto" then
+		--获取模组AT命令
+		-- local odpall = io.popen("cd "..script_path.." && source "..script_path.."modem_debug.sh && get_quick_commands "..quick_option.." "..manufacturer)
+		local odpall = io.popen("cat "..script_path..manufacturer.."_at_commands.json")
+		local opd = odpall:read("*a")
+		odpall:close()
+		quick_commands=json.parse(opd)
+	else
+		uci:foreach("modem", "custom-commands", function (custom_commands)
+			local command={}
+			command[custom_commands["description"]]=custom_commands["command"]
+			table.insert(commands,command)
+		end)
+		quick_commands["quick_commands"]=commands
+	end
+
 	-- 写入Web界面
 	luci.http.prepare_content("application/json")
 	luci.http.write_json(quick_commands)
