@@ -1,3 +1,6 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
 msgid "Base Setting"
 msgstr "基本设置"
 
@@ -43,6 +46,12 @@ msgstr "在此页面给所有模组添加拨号配置"
 msgid "Global Config"
 msgstr "全局配置"
 
+msgid "Dial Log"
+msgstr "拨号日志"
+
+msgid "Download Log"
+msgstr "下载日志"
+
 msgid "connect"
 msgstr "已连接"
 
@@ -73,6 +82,9 @@ msgstr "选择一个模组进行调试"
 msgid "Network Preferences"
 msgstr "网络偏好"
 
+msgid "Self Test"
+msgstr "自检"
+
 msgid "Current"
 msgstr "当前"
 
@@ -81,6 +93,30 @@ msgstr "选项"
 
 msgid "Config"
 msgstr "配置"
+
+msgid "Item"
+msgstr "项目"
+
+msgid "Voltage"
+msgstr "电压"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "Abnormal"
+msgstr "异常"
+
+msgid "Normal"
+msgstr "正常"
+
+msgid "Low"
+msgstr "偏低"
+
+msgid "Somewhat High"
+msgstr "偏高"
+
+msgid "Excessively High"
+msgstr "过高"
 
 msgid "AT Command"
 msgstr "AT命令"
@@ -114,6 +150,9 @@ msgstr "响应"
 
 msgid "Return to old page"
 msgstr "返回旧界面"
+
+msgid "Return to modem debug"
+msgstr "返回模组调试界面"
 
 msgid "Custom quick commands"
 msgstr "自定义快捷命令"
@@ -157,6 +196,9 @@ msgstr "移动网络"
 msgid "UNKNOWN"
 msgstr "未知"
 
+msgid "Unknown"
+msgstr "未知"
+
 msgid "unknown"
 msgstr "未知"
 
@@ -169,8 +211,14 @@ msgstr "找不到网络设备"
 msgid "Only display the modes available for the adaptation modem"
 msgstr "仅显示适配模组可用的拨号模式"
 
+msgid "Config ID"
+msgstr "配置 ID"
+
 msgid "Dial Tool"
 msgstr "拨号工具"
+
+msgid "After switching the dialing tool, it may be necessary to restart the module or restart the router to recognize the module."
+msgstr "切换拨号工具后，可能需要重启模组或重启路由器才能识别模组。"
 
 msgid "Auto Choose"
 msgstr "自动选择"
@@ -178,8 +226,17 @@ msgstr "自动选择"
 msgid "quectel-CM"
 msgstr "移远模组拨号工具"
 
+msgid "mmcli"
+msgstr "调制解调器管理工具"
+
 msgid "PDP Type"
 msgstr "网络类型"
+
+msgid "Network Bridge"
+msgstr "网络桥接"
+
+msgid "After checking, enable network interface bridge."
+msgstr "勾选后，启用网络接口桥接。"
 
 msgid "APN"
 msgstr "接入点"
@@ -199,17 +256,20 @@ msgstr "中国广电"
 msgid "Skytone"
 msgstr "天际通"
 
+msgid "Authentication Type"
+msgstr "认证类型"
+
+msgid "PAP/CHAP (both)"
+msgstr "PAP/CHAP (均使用)"
+
+msgid "NONE"
+msgstr "无"
+
 msgid "PAP/CHAP Username"
 msgstr "PAP/CHAP 用户名"
 
 msgid "PAP/CHAP Password"
 msgstr "PAP/CHAP 密码"
-
-msgid "Authentication Type"
-msgstr "认证类型"
-
-msgid "NONE"
-msgstr "无"
 
 msgid "Message"
 msgstr "信息"

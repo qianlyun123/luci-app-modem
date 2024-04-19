@@ -1,24 +1,38 @@
 #!/bin/sh
-current_dir="$(dirname "$0")"
+# Copyright (C) 2023 Siriling <siriling@qq.com>
+
+#脚本目录
+SCRIPT_DIR="/usr/share/modem"
+
+#预设
+quectel_presets()
+{
+	at_command='ATI'
+	# sh "${SCRIPT_DIR}/modem_at.sh" "$at_port" "$at_command"
+}
 
 #获取拨号模式
 # $1:AT串口
-get_mode()
+# $2:平台
+quectel_get_mode()
 {
     local at_port="$1"
+    local platform="$2"
+
     at_command='AT+QCFG="usbnet"'
-    local mode_num=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QCFG:" | sed 's/+QCFG: "usbnet",//g' | sed 's/\r//g')
+    local mode_num=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+QCFG:" | sed 's/+QCFG: "usbnet",//g' | sed 's/\r//g')
 
     #获取芯片平台
-    local platform
-    local modem_number=$(uci -q get modem.global.modem_number)
-    for i in $(seq 0 $((modem_number-1))); do
-        local at_port_tmp=$(uci -q get modem.modem$i.at_port)
-        if [ "$at_port" = "$at_port_tmp" ]; then
-            platform=$(uci -q get modem.modem$i.platform)
-            break
-        fi
-    done
+	if [ -z "$platform" ]; then
+		local modem_number=$(uci -q get modem.@global[0].modem_number)
+        for i in $(seq 0 $((modem_number-1))); do
+            local at_port_tmp=$(uci -q get modem.modem${i}.at_port)
+            if [ "$at_port" = "$at_port_tmp" ]; then
+                platform=$(uci -q get modem.modem${i}.platform)
+                break
+            fi
+        done
+	fi
     
     local mode
     case "$platform" in
@@ -29,8 +43,8 @@ get_mode()
                 "1") mode="ecm" ;;
                 "2") mode="mbim" ;;
                 "3") mode="rndis" ;;
-                "5") mode='ncm' ;;
-                *) mode="$mode_num" ;;
+                "5") mode="ncm" ;;
+                *) mode="${mode_num}" ;;
             esac
         ;;
         "unisoc")
@@ -38,27 +52,27 @@ get_mode()
                 "1") mode="ecm" ;;
                 "2") mode="mbim" ;;
                 "3") mode="rndis" ;;
-                "5") mode='ncm' ;;
-                *) mode="$mode_num" ;;
+                "5") mode="ncm" ;;
+                *) mode="${mode_num}" ;;
             esac
         ;;
         *)
-            mode="$mode_num"
+            mode="${mode_num}"
         ;;
     esac
-    echo "$mode"
+    echo "${mode}"
 }
 
 #设置拨号模式
 # $1:AT串口
 # $2:拨号模式配置
-set_mode()
+quectel_set_mode()
 {
     local at_port="$1"
 
     #获取芯片平台
     local platform
-    local modem_number=$(uci -q get modem.global.modem_number)
+    local modem_number=$(uci -q get modem.@global[0].modem_number)
     for i in $(seq 0 $((modem_number-1))); do
         local at_port_tmp=$(uci -q get modem.modem$i.at_port)
         if [ "$at_port" = "$at_port_tmp" ]; then
@@ -96,17 +110,17 @@ set_mode()
     esac
 
     #设置模组
-    at_command='AT+QCFG="usbnet",'$mode_num
-    sh $current_dir/modem_at.sh $at_port "$at_command"
+    at_command='AT+QCFG="usbnet",'${mode_num}
+    sh ${SCRIPT_DIR}/modem_at.sh "${at_port}" "${at_command}"
 }
 
 #获取网络偏好
 # $1:AT串口
-get_network_prefer()
+quectel_get_network_prefer()
 {
     local at_port="$1"
     at_command='AT+QNWPREFCFG="mode_pref"'
-    local response=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QNWPREFCFG:" | awk -F',' '{print $2}' | sed 's/\r//g')
+    local response=$(sh ${SCRIPT_DIR}/modem_at.sh ${at_port} ${at_command} | grep "+QNWPREFCFG:" | awk -F',' '{print $2}' | sed 's/\r//g')
     
     local network_prefer_3g="0";
     local network_prefer_4g="0";
@@ -146,7 +160,7 @@ get_network_prefer()
 #设置网络偏好
 # $1:AT串口
 # $2:网络偏好配置
-set_network_prefer()
+quectel_set_network_prefer()
 {
     local network_prefer="$2"
 
@@ -185,56 +199,38 @@ set_network_prefer()
 
     #设置模组
     local at_port="$1"
-    at_command='AT+QNWPREFCFG="mode_pref",'$network_prefer_config
-    sh $current_dir/modem_at.sh $at_port "$at_command"
+    at_command='AT+QNWPREFCFG="mode_pref",'${network_prefer_config}
+    sh ${SCRIPT_DIR}/modem_at.sh "${at_port}" "${at_command}"
 }
 
-#获取连接状态
+#获取电压
 # $1:AT串口
-get_connect_status()
+quectel_get_voltage()
 {
     local at_port="$1"
-    at_command="AT+QNWINFO"
-
-	local response=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QNWINFO:")
-
-    local connect_status
-	if [[ "$response" = *"No Service"* ]]; then
-        connect_status="disconnect"
-    elif [[ "$response" = *"Unknown Service"* ]]; then
-        connect_status="disconnect"
-    else
-        connect_status="connect"
-    fi
-
-    echo "$connect_status"
+    
+    #Voltage（电压）
+    at_command="AT+CBC"
+	local voltage=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+CBC:" | awk -F',' '{print $3}' | sed 's/\r//g')
+    echo "${voltage}"
 }
 
-#基本信息
-quectel_base_info()
+#获取温度
+# $1:AT串口
+quectel_get_temperature()
 {
-    debug "Quectel base info"
-
-    #Name（名称）
-    at_command="AT+CGMM"
-    name=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
-    #Manufacturer（制造商）
-    at_command="AT+CGMI"
-    manufacturer=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
-    #Revision（固件版本）
-    at_command="AT+CGMR"
-    revision=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
-
-    #Mode（拨号模式）
-    mode=$(get_mode $at_port | tr 'a-z' 'A-Z')
-
+    local at_port="$1"
+    
     #Temperature（温度）
     at_command="AT+QTEMP"
-	response=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $4}')
+	response=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $4}')
+
+    local temperature
 	if [ -n "$response" ]; then
 		temperature="$response$(printf "\xc2\xb0")C"
 	fi
-    # response=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QTEMP:")
+
+    # response=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+QTEMP:")
     # QTEMP=$(echo $response | grep -o -i "+QTEMP: [0-9]\{1,3\}")
     # if [ -z "$QTEMP" ]; then
     #     QTEMP=$(echo $response | grep -o -i "+QTEMP:[ ]\?\"XO[_-]THERM[_-][^,]\+,[\"]\?[0-9]\{1,3\}" | grep -o "[0-9]\{1,3\}")
@@ -248,11 +244,79 @@ quectel_base_info()
     # if [ -n "$QTEMP" ]; then
     #     CTEMP=$(echo $QTEMP | grep -o -i "[0-9]\{1,3\}")$(printf "\xc2\xb0")"C"
     # fi
+
+    echo "${temperature}"
+}
+
+#获取连接状态
+# $1:AT串口
+# $2:连接定义
+quectel_get_connect_status()
+{
+    local at_port="$1"
+    local define_connect="$2"
+
+    #默认值为1
+    [ -z "$define_connect" ] && {
+        define_connect="1"
+    }
+
+    at_command="AT+CGPADDR=${define_connect}"
+    local ipv4=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+CGPADDR: " | awk -F'"' '{print $2}')
+    local not_ip="0.0.0.0"
+
+    #设置连接状态
+    local connect_status
+    if [ -z "$ipv4" ] || [[ "$ipv4" = *"$not_ip"* ]]; then
+        connect_status="disconnect"
+    else
+        connect_status="connect"
+    fi
+    
+    #方法二
+    # at_command="AT+QNWINFO"
+
+	# local response=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+QNWINFO:")
+
+    # local connect_status
+	# if [[ "$response" = *"No Service"* ]]; then
+    #     connect_status="disconnect"
+    # elif [[ "$response" = *"Unknown Service"* ]]; then
+    #     connect_status="disconnect"
+    # else
+    #     connect_status="connect"
+    # fi
+
+    echo "$connect_status"
+}
+
+#基本信息
+quectel_base_info()
+{
+    debug "Quectel base info"
+
+    #Name（名称）
+    at_command="AT+CGMM"
+    name=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
+    #Manufacturer（制造商）
+    at_command="AT+CGMI"
+    manufacturer=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
+    #Revision（固件版本）
+    at_command="ATI"
+    revision=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "Revision:" | sed 's/Revision: //g' | sed 's/\r//g')
+    # at_command="AT+CGMR"
+    # revision=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
+
+    #Mode（拨号模式）
+    mode=$(quectel_get_mode $at_port | tr 'a-z' 'A-Z')
+
+    #Temperature（温度）
+    temperature=$(quectel_get_temperature $at_port)
 }
 
 #获取SIM卡状态
 # $1:SIM卡状态标志
-get_sim_status()
+quectel_get_sim_status()
 {
     local sim_status
     case $1 in
@@ -285,16 +349,16 @@ quectel_sim_info()
     
     #SIM Slot（SIM卡卡槽）
     at_command="AT+QUIMSLOT?"
-	sim_slot=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QUIMSLOT:" | awk -F' ' '{print $2}' | sed 's/\r//g')
+	sim_slot=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+QUIMSLOT:" | awk -F' ' '{print $2}' | sed 's/\r//g')
 
     #IMEI（国际移动设备识别码）
     at_command="AT+CGSN"
-	imei=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
+	imei=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
 
     #SIM Status（SIM状态）
     at_command="AT+CPIN?"
-	sim_status_flag=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p')
-    sim_status=$(get_sim_status "$sim_status_flag")
+	sim_status_flag=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p')
+    sim_status=$(quectel_get_sim_status "$sim_status_flag")
 
     if [ "$sim_status" != "ready" ]; then
         return
@@ -302,7 +366,7 @@ quectel_sim_info()
 
     #ISP（互联网服务提供商）
     at_command="AT+COPS?"
-    isp=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $2}')
+    isp=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $2}')
     # if [ "$isp" = "CHN-CMCC" ] || [ "$isp" = "CMCC" ]|| [ "$isp" = "46000" ]; then
     #     isp="中国移动"
     # # elif [ "$isp" = "CHN-UNICOM" ] || [ "$isp" = "UNICOM" ] || [ "$isp" = "46001" ]; then
@@ -315,20 +379,20 @@ quectel_sim_info()
 
     #SIM Number（SIM卡号码，手机号）
     at_command="AT+CNUM"
-	sim_number=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $4}')
+	sim_number=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | awk -F'"' '{print $4}')
 
     #IMSI（国际移动用户识别码）
     at_command="AT+CIMI"
-	imsi=$(sh $current_dir/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
+	imsi=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | sed -n '2p' | sed 's/\r//g')
 
     #ICCID（集成电路卡识别码）
     at_command="AT+ICCID"
-	# iccid=$(sh $current_dir/modem_at.sh $at_port $at_command | grep -o "+ICCID:[ ]*[-0-9]\+" | grep -o "[-0-9]\{1,4\}")
+	# iccid=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep -o "+ICCID:[ ]*[-0-9]\+" | grep -o "[-0-9]\{1,4\}")
 }
 
 #获取信号强度指示
 # $1:信号强度指示数字
-get_rssi()
+quectel_get_rssi()
 {
     local rssi
     case $1 in
@@ -344,7 +408,7 @@ quectel_network_info()
     debug "Quectel network info"
 
     #Connect Status（连接状态）
-    connect_status=$(get_connect_status $at_port)
+    connect_status=$(quectel_get_connect_status ${at_port} ${define_connect})
     if [ "$connect_status" != "connect" ]; then
         return
     fi
@@ -352,17 +416,17 @@ quectel_network_info()
     #Network Type（网络类型）
     # at_command="AT+COPS?"
     at_command="AT+QNWINFO"
-    network_type=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QNWINFO:" | awk -F'"' '{print $2}')
+    network_type=$(sh ${SCRIPT_DIR}/modem_at.sh ${at_port} ${at_command} | grep "+QNWINFO:" | awk -F'"' '{print $2}')
 
     #CSQ（信号强度）
     at_command="AT+CSQ"
-    response=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+CSQ:" | sed 's/+CSQ: //g' | sed 's/\r//g')
+    response=$(sh ${SCRIPT_DIR}/modem_at.sh ${at_port} ${at_command} | grep "+CSQ:" | sed 's/+CSQ: //g' | sed 's/\r//g')
 
     #RSSI（信号强度指示）
-    rssi_num=$(echo $response | awk -F',' '{print $1}')
-    rssi=$(get_rssi $rssi_num)
+    # rssi_num=$(echo $response | awk -F',' '{print $1}')
+    # rssi=$(quectel_get_rssi $rssi_num)
     #Ber（信道误码率）
-    ber=$(echo $response | awk -F',' '{print $2}')
+    # ber=$(echo $response | awk -F',' '{print $2}')
 
     #PER（信号强度）
     # if [ -n "$csq" ]; then
@@ -371,7 +435,7 @@ quectel_network_info()
 
     #速率统计
     at_command='AT+QNWCFG="up/down"'
-    response=$(sh $current_dir/modem_at.sh $at_port $at_command | grep "+QNWCFG:" | sed 's/+QNWCFG: "up/down",//g' | sed 's/\r//g')
+    response=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+QNWCFG:" | sed 's/+QNWCFG: "up\/down",//g' | sed 's/\r//g')
 
     #当前上传速率（单位，Byte/s）
     tx_rate=$(echo $response | awk -F',' '{print $1}')
@@ -383,7 +447,7 @@ quectel_network_info()
 #获取频段
 # $1:网络类型
 # $2:频段数字
-get_band()
+quectel_get_band()
 {
     local band
     case $1 in
@@ -396,7 +460,7 @@ get_band()
 
 #UL_bandwidth
 # $1:上行带宽数字
-get_lte_ul_bandwidth()
+quectel_get_lte_ul_bandwidth()
 {
     local ul_bandwidth
 	case $1 in
@@ -409,7 +473,7 @@ get_lte_ul_bandwidth()
 
 #DL_bandwidth
 # $1:下行带宽数字
-get_lte_dl_bandwidth()
+quectel_get_lte_dl_bandwidth()
 {
     local dl_bandwidth
 	case $1 in
@@ -422,7 +486,7 @@ get_lte_dl_bandwidth()
 
 #NR_DL_bandwidth
 # $1:下行带宽数字
-get_nr_dl_bandwidth()
+quectel_get_nr_dl_bandwidth()
 {
     local nr_dl_bandwidth
 	case $1 in
@@ -436,7 +500,7 @@ get_nr_dl_bandwidth()
 
 #获取NR子载波间隔
 # $1:NR子载波间隔数字
-get_scs()
+quectel_get_scs()
 {
     local scs
 	case $1 in
@@ -452,7 +516,7 @@ get_scs()
 
 #获取物理信道
 # $1:物理信道数字
-get_phych()
+quectel_get_phych()
 {
     local phych
 	case $1 in
@@ -464,7 +528,7 @@ get_phych()
 
 #获取扩频因子
 # $1:扩频因子数字
-get_sf()
+quectel_get_sf()
 {
     local sf
 	case $1 in
@@ -476,7 +540,7 @@ get_sf()
 
 #获取插槽格式
 # $1:插槽格式数字
-get_slot()
+quectel_get_slot()
 {
     local slot=$1
 	# case $1 in
@@ -492,7 +556,7 @@ quectel_cell_info()
     debug "Quectel cell info"
 
     at_command='AT+QENG="servingcell"'
-    response=$(sh $current_dir/modem_at.sh $at_port $at_command)
+    response=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command)
     
     local lte=$(echo "$response" | grep "+QENG: \"LTE\"")
     local nr5g_nsa=$(echo "$response" | grep "+QENG: \"NR5G-NSA\"")
@@ -507,11 +571,11 @@ quectel_cell_info()
         endc_lte_physical_cell_id=$(echo "$lte" | awk -F',' '{print $6}')
         endc_lte_earfcn=$(echo "$lte" | awk -F',' '{print $7}')
         endc_lte_freq_band_ind_num=$(echo "$lte" | awk -F',' '{print $8}')
-        endc_lte_freq_band_ind=$(get_band "LTE" $endc_lte_freq_band_ind_num)
+        endc_lte_freq_band_ind=$(quectel_get_band "LTE" $endc_lte_freq_band_ind_num)
         ul_bandwidth_num=$(echo "$lte" | awk -F',' '{print $9}')
-        endc_lte_ul_bandwidth=$(get_lte_ul_bandwidth $ul_bandwidth_num)
+        endc_lte_ul_bandwidth=$(quectel_get_lte_ul_bandwidth $ul_bandwidth_num)
         dl_bandwidth_num=$(echo "$lte" | awk -F',' '{print $10}')
-        endc_lte_dl_bandwidth=$(get_lte_dl_bandwidth $dl_bandwidth_num)
+        endc_lte_dl_bandwidth=$(quectel_get_lte_dl_bandwidth $dl_bandwidth_num)
         endc_lte_tac=$(echo "$lte" | awk -F',' '{print $11}')
         endc_lte_rsrp=$(echo "$lte" | awk -F',' '{print $12}')
         endc_lte_rsrq=$(echo "$lte" | awk -F',' '{print $13}')
@@ -529,11 +593,11 @@ quectel_cell_info()
         endc_nr_rsrq=$(echo "$nr5g_nsa" | awk -F',' '{print $7}')
         endc_nr_arfcn=$(echo "$nr5g_nsa" | awk -F',' '{print $8}')
         endc_nr_band_num=$(echo "$nr5g_nsa" | awk -F',' '{print $9}')
-        endc_nr_band=$(get_band "NR" $endc_nr_band_num)
+        endc_nr_band=$(quectel_get_band "NR" $endc_nr_band_num)
         nr_dl_bandwidth_num=$(echo "$nr5g_nsa" | awk -F',' '{print $10}')
-        endc_nr_dl_bandwidth=$(get_nr_dl_bandwidth $nr_dl_bandwidth_num)
+        endc_nr_dl_bandwidth=$(quectel_get_nr_dl_bandwidth $nr_dl_bandwidth_num)
         scs_num=$(echo "$nr5g_nsa" | awk -F',' '{print $16}' | sed 's/\r//g')
-        endc_nr_scs=$(get_scs $scs_num)
+        endc_nr_scs=$(quectel_get_scs $scs_num)
     else
         #SA，LTE，WCDMA模式
         response=$(echo "$response" | grep "+QENG:")
@@ -549,14 +613,14 @@ quectel_cell_info()
                 nr_tac=$(echo "$response" | awk -F',' '{print $9}')
                 nr_arfcn=$(echo "$response" | awk -F',' '{print $10}')
                 nr_band_num=$(echo "$response" | awk -F',' '{print $11}')
-                nr_band=$(get_band "NR" $nr_band_num)
+                nr_band=$(quectel_get_band "NR" $nr_band_num)
                 nr_dl_bandwidth_num=$(echo "$response" | awk -F',' '{print $12}')
-                nr_dl_bandwidth=$(get_nr_dl_bandwidth $nr_dl_bandwidth_num)
+                nr_dl_bandwidth=$(quectel_get_nr_dl_bandwidth $nr_dl_bandwidth_num)
                 nr_rsrp=$(echo "$response" | awk -F',' '{print $13}')
                 nr_rsrq=$(echo "$response" | awk -F',' '{print $14}')
                 nr_sinr=$(echo "$response" | awk -F',' '{print $15}')
                 nr_scs_num=$(echo "$response" | awk -F',' '{print $16}')
-                nr_scs=$(get_scs $nr_scs_num)
+                nr_scs=$(quectel_get_scs $nr_scs_num)
                 nr_rxlev=$(echo "$response" | awk -F',' '{print $17}' | sed 's/\r//g')
             ;;
             "LTE"|"CAT-M"|"CAT-NB")
@@ -568,11 +632,11 @@ quectel_cell_info()
                 lte_physical_cell_id=$(echo "$response" | awk -F',' '{print $8}')
                 lte_earfcn=$(echo "$response" | awk -F',' '{print $9}')
                 lte_freq_band_ind_num=$(echo "$response" | awk -F',' '{print $10}')
-                lte_freq_band_ind=$(get_band "LTE" $lte_freq_band_ind_num)
+                lte_freq_band_ind=$(quectel_get_band "LTE" $lte_freq_band_ind_num)
                 ul_bandwidth_num=$(echo "$response" | awk -F',' '{print $11}')
-                lte_ul_bandwidth=$(get_lte_ul_bandwidth $ul_bandwidth_num)
+                lte_ul_bandwidth=$(quectel_get_lte_ul_bandwidth $ul_bandwidth_num)
                 dl_bandwidth_num=$(echo "$response" | awk -F',' '{print $12}')
-                lte_dl_bandwidth=$(get_lte_dl_bandwidth $dl_bandwidth_num)
+                lte_dl_bandwidth=$(quectel_get_lte_dl_bandwidth $dl_bandwidth_num)
                 lte_tac=$(echo "$response" | awk -F',' '{print $13}')
                 lte_rsrp=$(echo "$response" | awk -F',' '{print $14}')
                 lte_rsrq=$(echo "$response" | awk -F',' '{print $15}')
@@ -594,11 +658,11 @@ quectel_cell_info()
                 wcdma_rscp=$(echo "$response" | awk -F',' '{print $11}')
                 wcdma_ecio=$(echo "$response" | awk -F',' '{print $12}')
                 wcdma_phych_num=$(echo "$response" | awk -F',' '{print $13}')
-                wcdma_phych=$(get_phych $wcdma_phych_num)
+                wcdma_phych=$(quectel_get_phych $wcdma_phych_num)
                 wcdma_sf_num=$(echo "$response" | awk -F',' '{print $14}')
-                wcdma_sf=$(get_sf $wcdma_sf_num)
+                wcdma_sf=$(quectel_get_sf $wcdma_sf_num)
                 wcdma_slot_num=$(echo "$response" | awk -F',' '{print $15}')
-                wcdma_slot=$(get_slot $wcdma_slot_num)
+                wcdma_slot=$(quectel_get_slot $wcdma_slot_num)
                 wcdma_speech_code=$(echo "$response" | awk -F',' '{print $16}')
                 wcdma_com_mod=$(echo "$response" | awk -F',' '{print $17}' | sed 's/\r//g')
             ;;
@@ -914,7 +978,8 @@ get_quectel_info()
 {
     debug "get quectel info"
     #设置AT串口
-    at_port=$1
+    at_port="$1"
+    define_connect="$2"
 
     #基本信息
     quectel_base_info

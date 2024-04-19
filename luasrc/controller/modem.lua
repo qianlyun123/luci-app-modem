@@ -5,6 +5,7 @@ local fs = require "nixio.fs"
 local json = require("luci.jsonc")
 uci = luci.model.uci.cursor()
 local script_path="/usr/share/modem/"
+local run_path="/tmp/run/modem/"
 
 function index()
     if not nixio.fs.access("/etc/config/modem") then
@@ -22,16 +23,21 @@ function index()
 	entry({"admin", "network", "modem", "index"},cbi("modem/index"),translate("Dial Config"),20).leaf = true
 	entry({"admin", "network", "modem", "config"}, cbi("modem/config")).leaf = true
 	entry({"admin", "network", "modem", "get_modems"}, call("getModems"), nil).leaf = true
+	entry({"admin", "network", "modem", "get_dial_log_info"}, call("getDialLogInfo"), nil).leaf = true
+	entry({"admin", "network", "modem", "clean_dial_log"}, call("cleanDialLog"), nil).leaf = true
 	entry({"admin", "network", "modem", "status"}, call("act_status")).leaf = true
 
 	--模块调试
 	entry({"admin", "network", "modem", "modem_debug"},template("modem/modem_debug"),translate("Modem Debug"),30).leaf = true
+	entry({"admin", "network", "modem", "quick_commands_config"}, cbi("modem/quick_commands_config")).leaf = true
+	entry({"admin", "network", "modem", "get_mode_info"}, call("getModeInfo"), nil).leaf = true
+	entry({"admin", "network", "modem", "set_mode"}, call("setMode"), nil).leaf = true
+	entry({"admin", "network", "modem", "get_network_prefer_info"}, call("getNetworkPreferInfo"), nil).leaf = true
+	entry({"admin", "network", "modem", "set_network_prefer"}, call("setNetworkPrefer"), nil).leaf = true
+	entry({"admin", "network", "modem", "get_self_test_info"}, call("getSelfTestInfo"), nil).leaf = true
 	entry({"admin", "network", "modem", "get_quick_commands"}, call("getQuickCommands"), nil).leaf = true
 	entry({"admin", "network", "modem", "send_at_command"}, call("sendATCommand"), nil).leaf = true
-	entry({"admin", "network", "modem", "get_modem_debug_info"}, call("getModemDebugInfo"), nil).leaf = true
-	entry({"admin", "network", "modem", "set_mode"}, call("setMode"), nil).leaf = true
-	entry({"admin", "network", "modem", "set_network_prefer"}, call("setNetworkPrefer"), nil).leaf = true
-	entry({"admin", "network", "modem", "quick_commands_config"}, cbi("modem/quick_commands_config")).leaf = true
+	-- entry({"admin", "network", "modem", "get_modem_debug_info"}, call("getModemDebugInfo"), nil).leaf = true
 
 	--AT命令旧界面
 	entry({"admin", "network", "modem", "at_command_old"},template("modem/at_command_old")).leaf = true
@@ -48,17 +54,85 @@ function hasLetters(str)
 end
 
 --[[
+@Description 执行Shell脚本
+@Params
+	command sh命令
+]]
+function shell(command)
+	local odpall = io.popen(command)
+	local odp = odpall:read("*a")
+	odpall:close()
+	return odp
+end
+
+--[[
 @Description 执行AT命令
 @Params
 	at_port AT串口
 	at_command AT命令
 ]]
 function at(at_port,at_command)
-	local odpall = io.popen("cd "..script_path.." && source "..script_path.."modem_debug.sh && at "..at_port.." "..at_command)
-	local odp =  odpall:read("*a")
-	odpall:close()
-	odp=string.gsub(odp, "\r", "")
-	return odp
+	local command="source "..script_path.."modem_debug.sh && at "..at_port.." "..at_command
+	local result=shell(command)
+	result=string.gsub(result, "\r", "")
+	return result
+end
+
+--[[
+@Description 获取制造商
+@Params
+	at_port AT串口
+]]
+function getManufacturer(at_port)
+
+	local manufacturer
+	uci:foreach("modem", "modem-device", function (modem_device)
+		--设置模组AT串口
+		if at_port == modem_device["at_port"] then
+			manufacturer=modem_device["manufacturer"]
+			return true --跳出循环
+		end
+	end)
+
+	return manufacturer
+end
+
+--[[
+@Description 获取模组拨号模式
+@Params
+	at_port AT串口
+	manufacturer 制造商
+	platform 平台
+]]
+function getMode(at_port,manufacturer,platform)
+	local mode="unknown"
+
+	if at_port and manufacturer~="unknown" then
+		local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_mode "..at_port.." "..platform
+		local result=shell(command)
+		mode=string.gsub(result, "\n", "")
+	end
+
+	return mode
+end
+
+--[[
+@Description 获取模组支持的拨号模式
+@Params
+	at_port AT串口
+]]
+function getModes(at_port)
+
+	local modes
+	uci:foreach("modem", "modem-device", function (modem_device)
+		--设置模组AT串口
+		if at_port == modem_device["at_port"] then
+			modes=modem_device["modes"]
+			return true --跳出循环
+		end
+	end)
+
+	return modes
 end
 
 --[[
@@ -66,16 +140,16 @@ end
 @Params
 	at_port AT串口
 	manufacturer 制造商
+	define_connect 连接定义
 ]]
-function getModemConnectStatus(at_port,manufacturer)
+function getModemConnectStatus(at_port,manufacturer,define_connect)
 
 	local connect_status="unknown"
 
 	if at_port and manufacturer~="unknown" then
-		local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && get_connect_status "..at_port)
-		opd = odpall:read("*a")
-		odpall:close()
-		connect_status = string.gsub(opd, "\n", "")
+		local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_connect_status "..at_port.." "..define_connect
+		local result=shell(command)
+		connect_status=string.gsub(result, "\n", "")
 	end
 
 	return connect_status
@@ -94,7 +168,7 @@ function getModemDeviceInfo(at_port)
 			--获取数据接口
 			local data_interface=modem_device["data_interface"]:upper()
 			--获取连接状态
-			local connect_status=getModemConnectStatus(modem_device["at_port"],modem_device["manufacturer"])
+			local connect_status=getModemConnectStatus(modem_device["at_port"],modem_device["manufacturer"],modem_device["define_connect"])
 
 			--设置值
 			modem_device_info=modem_device
@@ -113,15 +187,14 @@ end
 	at_port AT串口
 	manufacturer 制造商
 ]]
-function getModemMoreInfo(at_port,manufacturer)
+function getModemMoreInfo(at_port,manufacturer,define_connect)
 
 	--获取模组信息
-	local odpall = io.popen("sh "..script_path.."modem_info.sh".." "..at_port.." "..manufacturer)
-	local opd = odpall:read("*a")
-	odpall:close()
+	local command="sh "..script_path.."modem_info.sh".." "..at_port.." "..manufacturer.." "..define_connect
+	local result=shell(command)
 
 	--设置值
-	local modem_more_info=json.parse(opd)
+	local modem_more_info=json.parse(result)
 	return modem_more_info
 end
 
@@ -138,7 +211,7 @@ function getModemInfo()
 	local modem_more_info
 	if at_port then
 		modem_device_info=getModemDeviceInfo(at_port)
-		modem_more_info=getModemMoreInfo(at_port,modem_device_info["manufacturer"])
+		modem_more_info=getModemMoreInfo(at_port,modem_device_info["manufacturer"],modem_device_info["define_connect"])
 	end
 
 	--设置信息
@@ -204,13 +277,31 @@ function getModemInfo()
 	end
 	--小区信息翻译
 	if modem_more_info["cell_info"] then
-		for key in pairs(modem_more_info["cell_info"]) do
-			translation[key]=luci.i18n.translate(key)
-			local network_mode=modem_more_info["cell_info"][key]
-			for i = 1, #network_mode do
-				local info = network_mode[i]
-				for key in pairs(info) do
-					translation[key]=luci.i18n.translate(key)
+		for network_mode_key in pairs(modem_more_info["cell_info"]) do
+			--翻译网络模式
+			translation[network_mode_key]=luci.i18n.translate(network_mode_key)
+			if network_mode_key == "EN-DC Mode" then
+				local network_mode=modem_more_info["cell_info"][network_mode_key]
+				for i = 1, #network_mode do
+					for key in pairs(network_mode[i]) do
+						--获取每个网络类型信息
+						local network_type=network_mode[i][key]
+						for j = 1, #network_type do
+							local info = network_type[j]
+							for key in pairs(info) do
+								translation[key]=luci.i18n.translate(key)
+							end
+						end
+					end
+				end
+			else
+				--获取网络类型信息
+				local network_type=modem_more_info["cell_info"][network_mode_key]
+				for i = 1, #network_type do
+					local info = network_type[i]
+					for key in pairs(info) do
+						translation[key]=luci.i18n.translate(key)
+					end
 				end
 			end
 		end
@@ -236,16 +327,21 @@ function getModems()
 	local translation={}
 	uci:foreach("modem", "modem-device", function (modem_device)
 		-- 获取连接状态
-		local connect_status=getModemConnectStatus(modem_device["at_port"],modem_device["manufacturer"])
+		local connect_status=getModemConnectStatus(modem_device["at_port"],modem_device["manufacturer"],modem_device["define_connect"])
+		-- 获取拨号模式
+		local mode=getMode(modem_device["at_port"],modem_device["manufacturer"],modem_device["platform"])
 
 		-- 获取翻译
 		translation[connect_status]=luci.i18n.translate(connect_status)
-		translation[modem_device["name"]]=luci.i18n.translate(modem_device["name"])
-		translation[modem_device["mode"]]=luci.i18n.translate(modem_device["mode"])
+		if modem_device["name"] then
+			translation[modem_device["name"]]=luci.i18n.translate(modem_device["name"])
+		end
+		translation[mode]=luci.i18n.translate(mode)
 
 		-- 设置值
 		local modem=modem_device
 		modem["connect_status"]=connect_status
+		modem["mode"]=mode
 
 		local modem_tmp={}
 		modem_tmp[modem_device[".name"]]=modem
@@ -256,6 +352,68 @@ function getModems()
 	local data={}
 	data["modems"]=modems
 	data["translation"]=translation
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(data)
+end
+
+--[[
+@Description 获取拨号日志信息
+]]
+function getDialLogInfo()
+	
+	local command="find "..run_path.." -name \"modem*_dial.cache\""
+	local result=shell(command)
+
+	local log_paths=string.split(result, "\n")
+
+	local logs={}
+	for i = #log_paths, 1, -1 do --倒序遍历
+		
+		local log_path=log_paths[i]
+
+		if log_path ~= "" then
+			--获取模组
+			local tmp=string.gsub(log_path, run_path, "")
+			local modem=string.gsub(tmp, "_dial.cache", "")
+			
+			--获取日志内容
+			local command="cat "..log_path
+			log=shell(command)
+
+			--排序插入
+			modem_log={}
+			modem_log[modem]=log
+			table.insert(logs, modem_log)
+		end
+	end
+
+	-- 设置值
+	local data={}
+	data["dial_log_info"]=logs
+	-- data["translation"]=translation
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(data)
+end
+
+--[[
+@Description 清空拨号日志
+]]
+function cleanDialLog()
+	
+	-- 获取拨号日志路径
+    local dial_log_path = http.formvalue("path")
+
+	-- 清空拨号日志
+	local command=": > "..dial_log_path
+	shell(command)
+
+	-- 设置值
+	local data={}
+	data["clean_result"]="clean dial log"
 
 	-- 写入Web界面
 	luci.http.prepare_content("application/json")
@@ -334,6 +492,160 @@ function getATPort()
 end
 
 --[[
+@Description 获取拨号模式信息
+]]
+function getModeInfo()
+	local at_port = http.formvalue("port")
+
+	--获取值
+	local mode_info={}
+	uci:foreach("modem", "modem-device", function (modem_device)
+		--设置模组AT串口
+		if at_port == modem_device["at_port"] then
+
+			--获取制造商
+			local manufacturer=modem_device["manufacturer"]
+			if manufacturer=="unknown" then
+				return true --跳出循环
+			end
+
+			--获取支持的拨号模式
+			local modes=modem_device["modes"]
+
+			--获取模组拨号模式
+			local mode=getMode(at_port,manufacturer,modem_device["platform"])
+
+			--设置模式信息
+			mode_info["mode"]=mode
+			mode_info["modes"]=modes
+
+			return true --跳出循环
+		end
+	end)
+	
+	--设置值
+	local modem_debug_info={}
+	modem_debug_info["mode_info"]=mode_info
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(modem_debug_info)
+end
+
+--[[
+@Description 设置拨号模式
+]]
+function setMode()
+    local at_port = http.formvalue("port")
+	local mode_config = http.formvalue("mode_config")
+
+	--获取制造商
+	local manufacturer=getManufacturer(at_port)
+
+	--设置模组拨号模式
+	local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_set_mode "..at_port.." "..mode_config
+	shell(command)
+
+	--获取设置好后的模组拨号模式
+	local mode
+	if at_port and manufacturer and manufacturer~="unknown" then
+		local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_mode "..at_port
+		local result=shell(command)
+		mode=string.gsub(result, "\n", "")
+	end
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(mode)
+end
+
+--[[
+@Description 获取网络偏好信息
+]]
+function getNetworkPreferInfo()
+	local at_port = http.formvalue("port")
+	
+	--获取制造商
+	local manufacturer=getManufacturer(at_port)
+
+	--获取值
+	local network_prefer_info
+	if manufacturer~="unknown" then
+		--获取模组网络偏好
+		local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_network_prefer "..at_port
+		local result=shell(command)
+		network_prefer_info=json.parse(result)
+	end
+
+	--设置值
+	local modem_debug_info={}
+	modem_debug_info["network_prefer_info"]=network_prefer_info
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(modem_debug_info)
+end
+
+--[[
+@Description 设置网络偏好
+]]
+function setNetworkPrefer()
+    local at_port = http.formvalue("port")
+	local network_prefer_config = json.stringify(http.formvalue("prefer_config"))
+
+	--获取制造商
+	local manufacturer=getManufacturer(at_port)
+
+	--设置模组网络偏好
+	local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_set_network_prefer "..at_port.." "..network_prefer_config
+	shell(command)
+
+	--获取设置好后的模组网络偏好
+	local network_prefer={}
+	if at_port and manufacturer and manufacturer~="unknown" then
+		local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_network_prefer "..at_port
+		local result=shell(command)
+		network_prefer=json.parse(result)
+	end
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(network_prefer)
+end
+
+--[[
+@Description 获取自检信息
+]]
+function getSelfTestInfo()
+	local at_port = http.formvalue("port")
+	
+	--获取制造商
+	local manufacturer=getManufacturer(at_port)
+
+	--获取值
+	local self_test_info={}
+	if manufacturer~="unknown" then
+		--获取模组电压
+		local command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_voltage "..at_port
+		local result=shell(command)
+		self_test_info["voltage"]=json.parse(result)
+
+		--获取模组温度
+		command="source "..script_path..manufacturer..".sh && "..manufacturer.."_get_temperature "..at_port
+		result=shell(command)
+		self_test_info["temperature"]=json.parse(result)
+	end
+
+	--设置值
+	local modem_debug_info={}
+	modem_debug_info["self_test_info"]=self_test_info
+	
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(modem_debug_info)
+end
+
+--[[
 @Description 获取快捷命令
 ]]
 function getQuickCommands()
@@ -344,15 +656,7 @@ function getQuickCommands()
 	local at_port = http.formvalue("port")
 
 	--获取制造商
-	local manufacturer
-	uci:foreach("modem", "modem-device", function (modem_device)
-		--设置模组AT串口
-		if at_port == modem_device["at_port"] then
-			--获取制造商
-			manufacturer=modem_device["manufacturer"]
-			return true --跳出循环
-		end
-	end)
+	local manufacturer=getManufacturer(at_port)
 
 	--未适配模组时，快捷命令选项为自定义
 	if manufacturer=="unknown" then
@@ -363,11 +667,11 @@ function getQuickCommands()
 	local commands={}
 	if quick_option=="auto" then
 		--获取模组AT命令
-		-- local odpall = io.popen("cd "..script_path.." && source "..script_path.."modem_debug.sh && get_quick_commands "..quick_option.." "..manufacturer)
-		local odpall = io.popen("cat "..script_path..manufacturer.."_at_commands.json")
-		local opd = odpall:read("*a")
-		odpall:close()
-		quick_commands=json.parse(opd)
+		-- local command="source "..script_path.."modem_debug.sh && get_quick_commands "..quick_option.." "..manufacturer
+		local command="cat "..script_path..manufacturer.."_at_commands.json"
+		local result=shell(command)
+		quick_commands=json.parse(result)
+
 	else
 		uci:foreach("modem", "custom-commands", function (custom_commands)
 			local command={}
@@ -401,157 +705,31 @@ function sendATCommand()
 end
 
 --[[
-@Description 设置网络偏好
-]]
-function setNetworkPrefer()
-    local at_port = http.formvalue("port")
-	local network_prefer_config = json.stringify(http.formvalue("prefer_config"))
-
-	--获取制造商
-	local manufacturer
-	uci:foreach("modem", "modem-device", function (modem_device)
-		--设置模组AT串口
-		if at_port == modem_device["at_port"] then
-			--获取制造商
-			manufacturer=modem_device["manufacturer"]
-			return true --跳出循环
-		end
-	end)
-
-	--设置模组网络偏好
-	local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && set_network_prefer "..at_port.." "..network_prefer_config)
-	odpall:close()
-
-	--获取设置好后的模组网络偏好
-	local network_prefer={}
-	if at_port and manufacturer and manufacturer~="unknown" then
-		local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && get_network_prefer "..at_port)
-		local opd = odpall:read("*a")
-		network_prefer=json.parse(opd)
-		odpall:close()
-	end
-
-	-- 写入Web界面
-	luci.http.prepare_content("application/json")
-	luci.http.write_json(network_prefer)
-end
-
---[[
-@Description 设置拨号模式
-]]
-function setMode()
-    local at_port = http.formvalue("port")
-	local mode_config = http.formvalue("mode_config")
-
-	--获取制造商
-	local manufacturer
-	uci:foreach("modem", "modem-device", function (modem_device)
-		--设置模组AT串口
-		if at_port == modem_device["at_port"] then
-			--获取制造商
-			manufacturer=modem_device["manufacturer"]
-			return true --跳出循环
-		end
-	end)
-
-	--设置模组拨号模式
-	local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && set_mode "..at_port.." "..mode_config)
-	odpall:close()
-
-	--获取设置好后的模组拨号模式
-	local mode
-	if at_port and manufacturer and manufacturer~="unknown" then
-		local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && get_mode "..at_port)
-		mode = odpall:read("*a")
-		mode=string.gsub(mode, "\n", "")
-		odpall:close()
-	end
-
-	-- 写入Web界面
-	luci.http.prepare_content("application/json")
-	luci.http.write_json(mode)
-end
-
---[[
-@Description 获取拨号模式信息
-@Params
-	at_port AT串口
-	manufacturer 制造商
-]]
-function getModeInfo(at_port,manufacturer)
-
-	--获取支持的拨号模式
-	local modes
-	uci:foreach("modem", "modem-device", function (modem_device)
-		--设置模组AT串口
-		if at_port == modem_device["at_port"] then
-			modes=modem_device["modes"]
-			return true --跳出循环
-		end
-	end)
-
-	--获取模组拨号模式
-	local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && get_mode "..at_port)
-	local opd = odpall:read("*a")
-	odpall:close()
-	local mode=string.gsub(opd, "\n", "")
-	
-	-- 设置值
-	local mode_info={}
-	mode_info["mode"]=mode
-	mode_info["modes"]=modes
-
-	return mode_info
-end
-
---[[
-@Description 获取网络偏好信息
-@Params
-	at_port AT串口
-	manufacturer 制造商
-]]
-function getNetworkPreferInfo(at_port,manufacturer)
-
-	--获取模组网络偏好
-	local odpall = io.popen("cd "..script_path.." && source "..script_path..manufacturer..".sh && get_network_prefer "..at_port)
-	local opd = odpall:read("*a")
-	odpall:close()
-	local network_prefer_info=json.parse(opd)
-	
-	return network_prefer_info
-end
-
---[[
 @Description 获取模组调试信息
 ]]
-function getModemDebugInfo()
-	local at_port = http.formvalue("port")
+-- function getModemDebugInfo()
+-- 	local at_port = http.formvalue("port")
 	
-	--获取制造商
-	local manufacturer
-	uci:foreach("modem", "modem-device", function (modem_device)
-		--设置模组AT串口
-		if at_port == modem_device["at_port"] then
-			--获取制造商
-			manufacturer=modem_device["manufacturer"]
-			return true --跳出循环
-		end
-	end)
+-- 	--获取制造商
+-- 	local manufacturer=getManufacturer(at_port)
 
-	--获取值
-	local mode_info={}
-	local network_prefer_info={}
-	if manufacturer~="unknown" then
-		mode_info=getModeInfo(at_port,manufacturer)
-		network_prefer_info=getNetworkPreferInfo(at_port,manufacturer)
-	end
+-- 	--获取值
+-- 	local mode_info={}
+-- 	local network_prefer_info={}
+-- 	local self_test_info={}
+-- 	if manufacturer~="unknown" then
+-- 		mode_info=getModeInfo(at_port,manufacturer)
+-- 		network_prefer_info=getNetworkPreferInfo(at_port,manufacturer)
+-- 		self_test_info=getSelfTestInfo(at_port,manufacturer)
+-- 	end
 
-	--设置值
-	local modem_debug_info={}
-	modem_debug_info["mode_info"]=mode_info
-	modem_debug_info["network_prefer_info"]=network_prefer_info
+-- 	--设置值
+-- 	local modem_debug_info={}
+-- 	modem_debug_info["mode_info"]=mode_info
+-- 	modem_debug_info["network_prefer_info"]=network_prefer_info
+-- 	modem_debug_info["self_test_info"]=self_test_info
 
-	-- 写入Web界面
-	luci.http.prepare_content("application/json")
-	luci.http.write_json(modem_debug_info)
-end
+-- 	-- 写入Web界面
+-- 	luci.http.prepare_content("application/json")
+-- 	luci.http.write_json(modem_debug_info)
+-- end

@@ -18,9 +18,6 @@ enable = s:taboption("general", Flag, "enable", translate("Enable"))
 enable.default = "0"
 enable.rmempty = false
 
--- 配置ID
-uci:set('modem',arg[1],'id',arg[1])
-
 -- 备注
 remarks = s:taboption("general", Value, "remarks", translate("Remarks"))
 remarks.rmempty = true
@@ -68,19 +65,33 @@ getMobileNetwork()
 
 --------advanced--------
 
+-- 配置ID
+id = s:taboption("advanced", ListValue, "id", translate("Config ID"))
+id.rmempty = false
+id:value(arg[1])
+-- uci:set('modem',arg[1],'id',arg[1])
+
 -- 拨号工具
-dial_tool = s:taboption("advanced", Value, "dial_tool", translate("Dial Tool"))
+dial_tool = s:taboption("advanced", ListValue, "dial_tool", translate("Dial Tool"))
+dial_tool.description = translate("After switching the dialing tool, it may be necessary to restart the module or restart the router to recognize the module.")
 dial_tool.rmempty = true
 dial_tool:value("", translate("Auto Choose"))
 dial_tool:value("quectel-CM", translate("quectel-CM"))
+dial_tool:value("mmcli", translate("mmcli"))
 
 -- 网络类型
 pdp_type= s:taboption("advanced", ListValue, "pdp_type", translate("PDP Type"))
-pdp_type.default = "ipv4_ipv6"
+pdp_type.default = "ipv4v6"
 pdp_type.rmempty = false
 pdp_type:value("ipv4", translate("IPv4"))
 pdp_type:value("ipv6", translate("IPv6"))
-pdp_type:value("ipv4_ipv6", translate("IPv4/IPv6"))
+pdp_type:value("ipv4v6", translate("IPv4/IPv6"))
+
+-- 网络桥接
+network_bridge = s:taboption("advanced", Flag, "network_bridge", translate("Network Bridge"))
+network_bridge.description = translate("After checking, enable network interface bridge.")
+network_bridge.default = "0"
+network_bridge.rmempty = false
 
 -- 接入点
 apn = s:taboption("advanced", Value, "apn", translate("APN"))
@@ -93,19 +104,25 @@ apn:value("ctnet", translate("China Telecom"))
 apn:value("cbnet", translate("China Broadcast"))
 apn:value("5gscuiot", translate("Skytone"))
 
+auth = s:taboption("advanced", ListValue, "auth", translate("Authentication Type"))
+auth.default = "none"
+auth.rmempty = false
+auth:value("none", translate("NONE"))
+auth:value("both", translate("PAP/CHAP (both)"))
+auth:value("pap", "PAP")
+auth:value("chap", "CHAP")
+
 username = s:taboption("advanced", Value, "username", translate("PAP/CHAP Username"))
 username.rmempty = true
+username:depends("auth", "both")
+username:depends("auth", "pap")
+username:depends("auth", "chap")
 
 password = s:taboption("advanced", Value, "password", translate("PAP/CHAP Password"))
 password.rmempty = true
-
-auth = s:taboption("advanced", Value, "auth", translate("Authentication Type"))
-auth.default = ""
-auth.rmempty = true
-auth:value("", translate("NONE"))
-auth:value("both", "PAP/CHAP (both)")
-auth:value("pap", "PAP")
-auth:value("chap", "CHAP")
--- auth:value("none", "NONE")
+password.password = true
+password:depends("auth", "both")
+password:depends("auth", "pap")
+password:depends("auth", "chap")
 
 return m

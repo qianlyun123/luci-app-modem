@@ -1,14 +1,44 @@
+# 中文 | [English](https://github.com/Siriling/5G-Modem-Support/blob/main/EngLish.md)
+
 # luci-app-modem
 
-- 原项目地址：https://github.com/momokind/luci-app-hypermodem
+# 目录
 
-## 说明
+[一、说明](#一说明)
 
-- 在原项目的基础上修改代码逻辑
+[二、模组支持](#二模组支持)
 
-- 添加USB和PCIe等依赖支持
+# 一、说明
 
-- 添加多模块支持
+- 支持USB和PCIe两种通信方式的通信模组
 
-- 支持USB和PCIE两种连接模式的5G模块用QMI模式进行IPv6拨号，然后下发给内网设备
+- 支持配置多个通信模组进行拨号
 
+- 支持IPv6
+
+- 支持高通，紫光展锐，联发科等平台的通信模组
+
+- 支持常见厂商的通信模组（例如：移远，广和通等）
+
+# 二、模组支持
+
+下面列出插件支持的模组
+
+| 厂家名称 | 模组名称                                           | 平台     | 数据传输模式 | 端口模式                     |
+| -------- | -------------------------------------------------- | -------- | ------------ | ---------------------------- |
+| 移远通信 | RG200U-CN（DONGLE版）                              | 紫光展锐 | USB          | ECM，MBIM，RNDIS，NCM        |
+| 移远通信 | RM500U-CN                                          | 紫光展锐 | USB          | ECM，MBIM，RNDIS，NCM        |
+| 移远通信 | RM500Q-CN                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM500Q-AE                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM500Q-GL                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM502Q-AE                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM502Q-GL                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM520N-CN                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM520N-GL                                          | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 移远通信 | RM500Q-GL                                          | 高通     | PCIE         | RMNET，MBIM                  |
+| 移远通信 | RM502Q-GL                                          | 高通     | PCIE         | RMNET，MBIM                  |
+| 广和通   | FM650-CN                                           | 紫光展锐 | USB          | ECM，MBIM，RNDIS，NCM        |
+| 广和通   | FM350-GL                                           | 联发科   | USB          | RNDIS                        |
+| 广和通   | FM150-AE-01，FM150-AE-11，FM150-AE-21，FM150-NA-01 | 高通     | USB          | RMNET，ECM，MBIM，RNDIS，NCM |
+| 广和通   | FM350-GL                                           | 联发科   | PCIE         | MBIM                         |
+| 广和通   | FM150-AE-00，FM150-AE-10，FM150-AE-20，FM150-NA-00 | 高通     | PCIE         | QMI                          |
