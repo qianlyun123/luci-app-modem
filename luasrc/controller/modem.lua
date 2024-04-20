@@ -754,7 +754,7 @@ function setPluginVersionInfo(info)
 		local command="opkg list-installed | grep -oE '"..key.." - "..version_regular_expression.."' | awk -F' ' '{print $3}' | tr -d '\n'"
 		local plugin_version=shell(command)
 
-		if result~="" then
+		if plugin_version~="" then
 			info[key]=plugin_version
 		end
 	end
@@ -803,10 +803,9 @@ end
 ]]
 function getPluginInfo()
 
-	local version_regular_expression="[0-9]+.[0-9]+.[0-9]+"
-
 	-- 设置翻译
 	translation={}
+	translation["Unknown"]=luci.i18n.translate("Unknown")
 	translation["Loaded"]=luci.i18n.translate("Loaded")
 	translation["Not loaded"]=luci.i18n.translate("Not loaded")
 

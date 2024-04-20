@@ -3,7 +3,7 @@
 <script type="text/javascript">//<![CDATA[
 
 	// 设置状态页面
-	function set_status_view(status,status_element)
+	function set_status_view(status,status_element,translation)
 	{
 		if (status=="Loaded") {
 			status_element.style.color = "green";
@@ -11,7 +11,7 @@
 		else if (status=="Not loaded") {
 			status_element.style.color = "red";
 		}
-		status_element.innerHTML=status;
+		status_element.innerHTML=translation[status];
 	}
 
 	// 设置状态
@@ -23,36 +23,43 @@
 			//获取状态元素
 			var status_element=document.getElementById(model.replace(".ko","_status"));
 			// 设置状态页面
-			set_status_view(translation[info[model]],status_element);
+			set_status_view(info[model],status_element,translation);
 		}
 	}
 
 	// 设置版本
-	function set_version(info)
+	function set_version(info,translation)
 	{
 		//遍历信息里面的插件版本
 		for (var plugin in info)
 		{
 			//获取版本元素
 			var version_element=document.getElementById(plugin+"_version");
-			version_element.innerHTML="v"+info[plugin];
+			if (info[plugin]=="Unknown") {
+				version_element.innerHTML=translation[info[plugin]];
+				version_element.style.color = "goldenrod";
+			}
+			else
+			{
+				version_element.innerHTML="v"+info[plugin];
+				version_element.style.color = "green";
+			}
 		}
 	}
 
 	XHR.get('<%=luci.dispatcher.build_url("admin", "network", "modem", "get_plugin_info")%>', {},
 		function(x, data)
 		{
-			console.log(data);
-
+			// 获取翻译
 			var translation=data["translation"];
 			
 			// 获取插件信息
 			var plugin_info=data["plugin_info"];
-			set_version(plugin_info);
+			set_version(plugin_info,translation);
 			
 			// 获取拨号工具信息
 			var dial_tool_info=data["dial_tool_info"];
-			set_version(dial_tool_info);
+			set_version(dial_tool_info,translation);
 
 			// 设置通用驱动信息的状态
 			var general_driver_info=data["general_driver_info"];
@@ -77,7 +84,6 @@
 		<style type="text/css">
 			div .version {
 				margin-top: 5px;
-				color: green;
 			}
 		</style>
 	</head>
