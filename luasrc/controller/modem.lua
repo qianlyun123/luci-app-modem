@@ -39,6 +39,10 @@ function index()
 	entry({"admin", "network", "modem", "send_at_command"}, call("sendATCommand"), nil).leaf = true
 	-- entry({"admin", "network", "modem", "get_modem_debug_info"}, call("getModemDebugInfo"), nil).leaf = true
 
+	--插件信息
+	entry({"admin", "network", "modem", "plugin_info"},template("modem/plugin_info"),translate("Plugin Info"),40).leaf = true
+	entry({"admin", "network", "modem", "get_plugin_info"}, call("getPluginInfo"), nil).leaf = true
+
 	--AT命令旧界面
 	entry({"admin", "network", "modem", "at_command_old"},template("modem/at_command_old")).leaf = true
 end
@@ -723,7 +727,7 @@ end
 -- 		self_test_info=getSelfTestInfo(at_port,manufacturer)
 -- 	end
 
--- 	--设置值
+--	-- 设置值
 -- 	local modem_debug_info={}
 -- 	modem_debug_info["mode_info"]=mode_info
 -- 	modem_debug_info["network_prefer_info"]=network_prefer_info
@@ -733,3 +737,125 @@ end
 -- 	luci.http.prepare_content("application/json")
 -- 	luci.http.write_json(modem_debug_info)
 -- end
+
+--[[
+@Description 设置插件版本信息
+@Params
+	info 信息
+]]
+function setPluginVersionInfo(info)
+
+	-- 正则表达式
+	local version_regular_expression="[0-9]+.[0-9]+.[0-9]+"
+
+	for key in pairs(info) do
+
+		-- 获取插件版本
+		local command="opkg list-installed | grep -oE '"..key.." - "..version_regular_expression.."' | awk -F' ' '{print $3}' | tr -d '\n'"
+		local plugin_version=shell(command)
+
+		if result~="" then
+			info[key]=plugin_version
+		end
+	end
+
+end
+
+--[[
+@Description 获取内核模块状态
+@Params
+	result 命令返回值
+]]
+function getModelStatus(result)
+	local model_status="Not loaded"
+
+	if result~="" then
+		model_status="Loaded"
+    end
+
+	return model_status
+end
+
+--[[
+@Description 设置内核模块状态
+@Params
+	info 信息
+]]
+function setModelStatus(info)
+
+	for key in pairs(info) do
+
+		-- 获取内核模块名
+		local model_name=key:gsub(".ko","")
+
+		local command="lsmod | grep -oE '"..model_name.." '"
+		local result=shell(command)
+		local model_status=getModelStatus(result)
+
+		-- 修改信息表
+		info[key]=model_status
+	end
+
+end
+
+--[[
+@Description 获取插件信息
+]]
+function getPluginInfo()
+
+	local version_regular_expression="[0-9]+.[0-9]+.[0-9]+"
+
+	-- 设置翻译
+	translation={}
+	translation["Loaded"]=luci.i18n.translate("Loaded")
+	translation["Not loaded"]=luci.i18n.translate("Not loaded")
+
+	-- 获取插件信息
+	local plugin_info={}
+	plugin_info["luci-app-modem"]="Unknown"
+	setPluginVersionInfo(plugin_info)
+
+	-- 获取拨号工具信息
+	local dial_tool_info={}
+	dial_tool_info["quectel-CM-5G"]="Unknown"
+	dial_tool_info["modemmanager"]="Unknown"
+	setPluginVersionInfo(dial_tool_info)
+
+	-- 获取通用驱动信息
+	local general_driver_info={}
+	general_driver_info["usbnet.ko"]="Not loaded"
+	general_driver_info["qcserial.ko"]="Not loaded"
+	setModelStatus(general_driver_info)
+
+	-- 获取模组USB驱动信息
+	local usb_driver_info={}
+	usb_driver_info["qmi_wwan.ko"]="Not loaded"
+	usb_driver_info["cdc_ether.ko"]="Not loaded"
+	usb_driver_info["cdc_mbim.ko"]="Not loaded"
+	usb_driver_info["rndis_host.ko"]="Not loaded"
+	usb_driver_info["cdc_ncm.ko"]="Not loaded"
+	setModelStatus(usb_driver_info)
+
+	-- 获取模组PCIE驱动信息
+	local pcie_driver_info={}
+	pcie_driver_info["mhi_net.ko"]="Not loaded"
+	pcie_driver_info["qrtr_mhi.ko"]="Not loaded"
+	pcie_driver_info["mhi_pci_generic.ko"]="Not loaded"
+	pcie_driver_info["mhi_wwan_mbim.ko"]="Not loaded"
+	pcie_driver_info["mhi_wwan_ctrl.ko"]="Not loaded"
+	pcie_driver_info["pcie_mhi.ko"]="Not loaded"
+	setModelStatus(pcie_driver_info)
+
+	-- 设置值
+	local data={}
+	data["translation"]=translation
+	data["plugin_info"]=plugin_info
+	data["dial_tool_info"]=dial_tool_info
+	data["general_driver_info"]=general_driver_info
+	data["usb_driver_info"]=usb_driver_info
+	data["pcie_driver_info"]=pcie_driver_info
+
+	-- 写入Web界面
+	luci.http.prepare_content("application/json")
+	luci.http.write_json(data)
+end

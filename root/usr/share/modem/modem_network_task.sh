@@ -104,20 +104,44 @@ rndis_dial()
         #获取IPv4地址
         at_command="AT+CGPADDR=${define_connect}"
         local ipv4=$(at ${at_port} ${at_command} | grep "+CGPADDR: " | awk -F',' '{print $2}' | sed 's/"//g')
+        #输出日志
+        echo "[$(date +"%Y-%m-%d %H:%M:%S")] Get Modem new IPv4: ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
 
-        #设置静态地址
+        #获取DNS地址
+        dns=$(fibocom_get_dns ${at_port} ${define_connect})
+        local ipv4_dns1=$(echo "${dns}" | jq -r '.dns.ipv4_dns1')
+        local ipv4_dns2=$(echo "${dns}" | jq -r '.dns.ipv4_dns2')
+        #输出日志
+        echo "[$(date +"%Y-%m-%d %H:%M:%S")] Get Modem IPv4 DNS1: ${ipv4_dns1}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+        echo "[$(date +"%Y-%m-%d %H:%M:%S")] Get Modem IPv4 DNS2: ${ipv4_dns2}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+        
+        #比较的网络接口中的IPv4地址
         local ipv4_config=$(uci -q get network.${interface_name}.ipaddr)
-        if [ "$ipv4_config" != "$ipv4" ]; then
+        if [ "$ipv4_config" == "$ipv4" ]; then
+            #输出日志
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] IPv4 address is the same as in the network interface, skip" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+        else
+            #输出日志
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Reset network interface ${interface_name}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+
+            #设置静态地址
             uci set network.${interface_name}.proto='static'
-            uci set network.${interface_name}.ipaddr="$ipv4"
+            uci set network.${interface_name}.ipaddr="${ipv4}"
             uci set network.${interface_name}.netmask='255.255.255.0'
             uci set network.${interface_name}.gateway="${ipv4%.*}.1"
+            uci set network.${interface_name}.peerdns='0'
+            uci -q del network.${interface_name}.dns
+            uci add_list network.${interface_name}.dns="${ipv4_dns1}"
+            uci add_list network.${interface_name}.dns="${ipv4_dns2}"
             uci commit network
             service network reload
 
             #启动网络接口
 	        ifup "wwan_5g_${modem_no}"
             ifup "wwan6_5g_${modem_no}"
+
+            #输出日志
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Reset network interface ${interface_name}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
         fi
     else
         #拨号
@@ -166,15 +190,21 @@ modem_network_task()
     #IPv4地址缓存
     local ipv4_cache
 
+    #输出日志
+    echo "[$(date +"%Y-%m-%d %H:%M:%S")] Start network task" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
     while true; do
         #全局
         local enable=$(uci -q get modem.@global[0].enable)
         if [ "$enable" != "1" ]; then
+            #输出日志
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] The dialing configuration has been disabled, this network task quit" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             break
         fi
         #单个模组
         enable=$(uci -q get modem.${config_id}.enable)
         if [ "$enable" != "1" ]; then
+            #输出日志
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] The modem has disabled dialing, this network task quit" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             break
         fi
 
@@ -186,18 +216,18 @@ modem_network_task()
 
             if [ -z "$ipv4" ]; then
                 #输出日志
-                echo "$(date +"%Y-%m-%d %H:%M:%S") redefine connect" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
-                service network modem
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Redefine connect to ${define_connect}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+                service modem reload
                 sleep 1s
             else
                 #缓存当前IP
                 ipv4_cache="${ipv4}"
                 #输出日志
-                echo "$(date +"%Y-%m-%d %H:%M:%S") Modem${modem_no} current IP : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} current IP : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             fi
 
             #输出日志
-            echo "$(date +"%Y-%m-%d %H:%M:%S") check or redial" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem redial" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             
             case "$mode" in
                 "gobinet") gobinet_dial "${at_port}" "${manufacturer}" "${define_connect}" ;;
