@@ -136,7 +136,6 @@
 	XHR.poll(5, '<%=luci.dispatcher.build_url("admin", "network", "modem", "get_dial_log_info")%>', null,
 		function(x, data)
 		{
-			console.log(data);
 			var dial_log_info=data["dial_log_info"];
 			var modem_name=data["modem_name"];
 
