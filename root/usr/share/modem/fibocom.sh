@@ -82,8 +82,13 @@ fibocom_get_mode()
     local platform="$2"
 
     at_command="AT+GTUSBMODE?"
-    local mode_num=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+GTUSBMODE:" | sed 's/+GTUSBMODE: //g' | sed 's/\r//g')
+    local mode_num=$(sh ${SCRIPT_DIR}/modem_at.sh ${at_port} ${at_command} | grep "+GTUSBMODE:" | sed 's/+GTUSBMODE: //g' | sed 's/\r//g')
     
+    if [ -z "$mode_num" ]; then
+        echo "unknown"
+        return
+    fi
+
     #获取芯片平台
 	if [ -z "$platform" ]; then
 		local modem_number=$(uci -q get modem.@global[0].modem_number)
@@ -141,7 +146,7 @@ fibocom_get_mode()
             mode="$mode_num"
         ;;
     esac
-    echo "$mode"
+    echo "${mode}"
 }
 
 #设置拨号模式
@@ -399,7 +404,7 @@ fibocom_get_sim_status()
 {
     local sim_status
     case $1 in
-        "") sim_status="unknown" ;;
+        "") sim_status="miss" ;;
         *"ERROR"*) sim_status="miss" ;;
         *"READY"*) sim_status="ready" ;;
         *"SIM PIN"*) sim_status="MT is waiting SIM PIN to be given" ;;

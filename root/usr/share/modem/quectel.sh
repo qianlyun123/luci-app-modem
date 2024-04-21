@@ -73,7 +73,12 @@ quectel_get_mode()
     local platform="$2"
 
     at_command='AT+QCFG="usbnet"'
-    local mode_num=$(sh ${SCRIPT_DIR}/modem_at.sh $at_port $at_command | grep "+QCFG:" | sed 's/+QCFG: "usbnet",//g' | sed 's/\r//g')
+    local mode_num=$(sh ${SCRIPT_DIR}/modem_at.sh ${at_port} ${at_command} | grep "+QCFG:" | sed 's/+QCFG: "usbnet",//g' | sed 's/\r//g')
+    
+    if [ -z "$mode_num" ]; then
+        echo "unknown"
+        return
+    fi
 
     #获取芯片平台
 	if [ -z "$platform" ]; then

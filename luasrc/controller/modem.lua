@@ -371,17 +371,20 @@ function getDialLogInfo()
 	local result=shell(command)
 
 	local log_paths=string.split(result, "\n")
+	table.sort(log_paths)
 
 	local logs={}
-	for i = #log_paths, 1, -1 do --倒序遍历
-		
-		local log_path=log_paths[i]
+	local names={}
+	for key in pairs(log_paths) do
+
+		local log_path=log_paths[key]
 
 		if log_path ~= "" then
 			--获取模组
 			local tmp=string.gsub(log_path, run_path, "")
 			local modem=string.gsub(tmp, "_dial.cache", "")
-			
+			local modem_name=uci:get("modem", modem, "name")
+
 			--获取日志内容
 			local command="cat "..log_path
 			log=shell(command)
@@ -390,13 +393,16 @@ function getDialLogInfo()
 			modem_log={}
 			modem_log[modem]=log
 			table.insert(logs, modem_log)
+
+			names[modem]=modem_name
 		end
 	end
 
 	-- 设置值
 	local data={}
 	data["dial_log_info"]=logs
-	-- data["translation"]=translation
+	data["modem_name"]=names
+	data["translation"]=translation
 
 	-- 写入Web界面
 	luci.http.prepare_content("application/json")
@@ -843,6 +849,7 @@ function getPluginInfo()
 	pcie_driver_info["mhi_wwan_mbim.ko"]="Not loaded"
 	pcie_driver_info["mhi_wwan_ctrl.ko"]="Not loaded"
 	pcie_driver_info["pcie_mhi.ko"]="Not loaded"
+	pcie_driver_info["mtk_pcie_wwan_m80.ko"]="Not loaded"
 	setModelStatus(pcie_driver_info)
 
 	-- 设置值

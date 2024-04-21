@@ -27,7 +27,7 @@ reset_network_interface()
     at_command="AT+CGPADDR=${define_connect}"
     local ipv4=$(at ${at_port} ${at_command} | grep "+CGPADDR: " | awk -F',' '{print $2}' | sed 's/"//g')
     #输出日志
-    # echo "[$(date +"%Y-%m-%d %H:%M:%S")] Get Modem new IPv4: ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+    # echo "[$(date +"%Y-%m-%d %H:%M:%S")] Get Modem new IPv4 address : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
 
     #获取DNS地址
     dns=$(fibocom_get_dns ${at_port} ${define_connect})
@@ -224,14 +224,21 @@ modem_network_task()
         local ipv4=$(at ${at_port} ${at_command} | grep "+CGPADDR: " | awk -F'"' '{print $2}')
 
         if [ -z "$ipv4" ]; then
+
+            [ "$mode" = "modemmanager" ] && {
+                #拨号工具为modemmanager时，不需要重新设置连接定义
+                continue
+            }
+
             #输出日志
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Unable to get IPv4 address" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             echo "[$(date +"%Y-%m-%d %H:%M:%S")] Redefine connect to ${define_connect}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             service modem reload
             # sleep 1s
         elif [[ "$ipv4" = *"0.0.0.0"* ]]; then
 
             #输出日志
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} current IP : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} current IPv4 address : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
 
             #输出日志
             echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem dial" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
@@ -249,11 +256,11 @@ modem_network_task()
             #第一次缓存IP为空时不输出日志
             [ -n "$ipv4_cache" ] && {
                 #输出日志
-                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} IP has changed" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+                echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} IPv4 address has changed" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
             }
 
             #输出日志
-            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} current IP : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
+            echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem${modem_no} current IPv4 address : ${ipv4}" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
 
             #缓存当前IP
             ipv4_cache="${ipv4}"
@@ -263,10 +270,11 @@ modem_network_task()
                 reset_network_interface "${at_port}" "${define_connect}" "${modem_no}"
             fi
 
-            #重新启动网络接口
-            ifup "${interface_name}"
-            ifup "${interface_name_ipv6}"
-
+            [ "$mode" != "modemmanager" ] && {
+                #重新启动网络接口
+                ifup "${interface_name}"
+                ifup "${interface_name_ipv6}"
+            }
         fi
         sleep 5s
     done
