@@ -239,7 +239,7 @@ modem_network_task()
 
             #输出日志
             echo "[$(date +"%Y-%m-%d %H:%M:%S")] Modem dial" >> "${MODEM_RUNDIR}/modem${modem_no}_dial.cache"
-            #拨号（针对获取IP返回为空的模组）
+            #拨号（针对获取IPv4返回为空的模组）
             case "$mode" in
                 "gobinet") gobinet_dial "${at_port}" "${manufacturer}" "${define_connect}" ;;
                 "ecm") ecm_dial "${at_port}" "${manufacturer}" "${define_connect}" ;;
