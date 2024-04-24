@@ -1,6 +1,7 @@
 <%+cbi/valueheader%>
 <script type="text/javascript">//<![CDATA[
 
+// 禁用功能
 function disabled_function(function_name,status)
 {
 	//模组扫描
@@ -11,6 +12,7 @@ function disabled_function(function_name,status)
 	}
 }
 
+// 模组扫描
 function modem_scan()
 {
 	//禁用功能
@@ -35,9 +37,7 @@ function modem_scan()
 //]]>
 </script>
 
-<style type="text/css">
-
-</style>
+<style type="text/css"></style>
 
 <input class="btn cbi-button cbi-button-apply" type="button" id="modem_scan_button" value="<%:Scan%>" onclick="modem_scan()" alt="<%:Scan%>" title="<%:Scan%>"/>
 <div class="cbi-value-description" id="modem_scan_description">
