@@ -24,7 +24,7 @@ o.template = "modem/modem_scan"
 -- 启用手动配置
 o = s:option(Flag, "manual_configuration", font_red..bold_on..translate("Manual Configuration")..bold_off..font_off)
 o.rmempty = false
-o.description = translate("Enable the manual configuration of modem information").." "..font_red..bold_on.. translate("(After enable, the automatic scanning function for modem information will be disabled)")..bold_off..font_off
+o.description = translate("Enable the manual configuration of modem information").." "..font_red..bold_on.. translate("(After enable, the automatic scanning and configuration function for modem information will be disabled)")..bold_off..font_off
 
 -- 配置模组信息
 s = m:section(TypedSection, "modem-device", translate("Modem Config"))
