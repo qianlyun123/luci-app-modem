@@ -453,6 +453,7 @@ m_set_modem_config()
 	uci set modem.modem${modem_no}.manufacturer="${manufacturer}"
 	uci set modem.modem${modem_no}.define_connect="${define_connect}"
 	uci set modem.modem${modem_no}.platform="${platform}"
+	uci -q del modem.modem${modem_no}.modes #删除原来的拨号模式列表
 	for mode in $modes; do
 		uci add_list modem.modem${modem_no}.modes="${mode}"
 	done
