@@ -167,7 +167,7 @@
                 "define_connect":"1",
                 "modes":["qmi","gobinet","mbim"]
             },
-            "rm520q-gl":{
+            "rm520n-gl":{
                 "manufacturer":"quectel",
                 "platform":"qualcomm",
                 "data_interface":"pcie",
