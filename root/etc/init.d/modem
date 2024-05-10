@@ -620,12 +620,21 @@ dial()
 	[ -z "${modem_no}" ] && return 0
 	
 	#获取模组的拨号模式
+	local time=0
 	local mode
-	while true; do
+	while [ $time -lt 5 ]; do
 		mode=$(get_mode ${modem_no})
 		[ -n "$mode" ] && [ "$mode" != "unknown" ] && break
 		sleep 5s
+		time=$((time+1))
     done
+
+	#获取不到拨号模式
+	[ -z "$mode" ] || [ "$mode" = "unknown" ] && {
+		uci set modem.$1.enable=0
+		uci commit modem
+		return 0
+	}
 
 	#查看该移动网络是否已经有拨号配置在运行
 	mkdir -m 0755 -p "${MODEM_RUNDIR}"
@@ -780,6 +789,9 @@ service_triggers()
 
 start_service() {
 
+	#加载模组配置
+	config_load modem
+
 	#统计模组数量
 	modem_count=0
 	config_foreach count_modem_number "modem-device"
@@ -787,8 +799,6 @@ start_service() {
 	uci set modem.@global[0].modem_number=${modem_count}
 	uci commit modem
 
-	#加载模组配置
-	config_load modem
 	#手动设置模组信息
 	config_foreach manual_set_modem_config "modem-device"
 
