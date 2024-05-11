@@ -275,6 +275,8 @@ meig_get_temperature()
     local temperature
 	if [ -n "$response" ]; then
 		temperature="${response}$(printf "\xc2\xb0")C"
+    else
+        temperature="NaN $(printf "\xc2\xb0")C"
 	fi
 
     echo "${temperature}"
