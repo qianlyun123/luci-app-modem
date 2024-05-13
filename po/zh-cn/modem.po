@@ -589,8 +589,8 @@ msgstr "（启用后将禁用自动扫描并配置模组信息功能）"
 msgid "Network Interface Alias"
 msgstr "网络接口别名"
 
-msgid "Enable automatic creation of alias network interface"
-msgstr "启用自动创建别名网络接口"
+msgid "Enable automatic creation of network interface alias (Effective upon reinstatement of dialing configuration)"
+msgstr "启用自动创建网络接口别名（重新启用拨号配置后生效）"
 
 msgid "Not null"
 msgstr "不能为空"

@@ -29,7 +29,7 @@ o.description = translate("Enable the manual configuration of modem information"
 -- 启用网络接口别名
 o = s:option(Flag, "network_interface_alias", translate("Network Interface Alias"))
 o.rmempty = false
-o.description = translate("Enable automatic creation of alias network interface")
+o.description = translate("Enable automatic creation of network interface alias (Effective upon reinstatement of dialing configuration)")
 
 -- 配置模组信息
 s = m:section(TypedSection, "modem-device", translate("Modem Config"))
