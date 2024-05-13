@@ -180,7 +180,7 @@ set_ipv4v6_interface()
 
 	#设置IPV6网络接口
 	local network_interface_alias=$(uci -q get modem.@global[0].network_interface_alias)
-	case $pdp_type in
+	case $network_interface_alias in
 		"0") set_ipv6_interface "${ipv6_interface_name}" "${network_interface}" ;;
 		"1") set_ipv6_interface "${ipv6_interface_name}" "@${ipv4_interface_name}" ;; #别名
 	esac
